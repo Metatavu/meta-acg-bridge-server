@@ -188,6 +188,12 @@
       <artifactId>resteasy-jackson2-provider</artifactId>
       <scope>provided</scope>
     </dependency>
+
+    <dependency>
+      <groupId>org.wildfly</groupId>
+      <artifactId>wildfly-clustering-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
     
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>

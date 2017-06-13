@@ -21,6 +21,7 @@ import org.apache.http.impl.client.HttpClients;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import fi.metatavu.acgbridge.server.cluster.ClusterController;
 import fi.metatavu.acgbridge.server.persistence.model.MobilePayTransaction;
 import fi.metatavu.acgbridge.server.persistence.model.TransactionStatus;
 import fi.metatavu.acgbridge.server.rest.model.Transaction;
@@ -43,6 +44,9 @@ public class MobilePayUpdateTask implements Runnable {
   
   @Inject
   private TransactionController transactionController;
+
+  @Inject
+  private ClusterController clusterController;
   
   @Resource
   private EJBContext ejbContext;
@@ -70,9 +74,8 @@ public class MobilePayUpdateTask implements Runnable {
   }
 
   private void checkPendingTransactions() {
-    List<MobilePayTransaction> transactions = transactionController.listPendingMobilePayTransactions();
+    List<MobilePayTransaction> transactions = transactionController.listPendingMobilePayTransactions(clusterController.getLocalNodeName());
     for (MobilePayTransaction transaction : transactions) {
-      
       try {
         MobilePayResponse<PaymentStatusResponse> response = mobilePayApi.paymentStatus(transaction.getLocationId(), transaction.getPosId(), transaction.getOrderId());
         if (response.isOk()) {

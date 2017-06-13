@@ -25,16 +25,24 @@ public class TransactionController {
   @Inject
   private MobilePayTransactionDAO mobilePayTransactionDAO;
   
-  public Transaction createMobilePayTransaction(String orderId, String machineId, String serverId, Double amount, String failureUrl, String successUrl, String posId, String locationId, String bulkRef) {
-    return mobilePayTransactionDAO.create(TransactionStatus.PENDING, "mobilepay", orderId, machineId, serverId, amount, failureUrl, successUrl, posId, locationId, bulkRef, null, null, null);
+  public Transaction createMobilePayTransaction(String orderId, String machineId, String serverId, Double amount, String failureUrl, String successUrl, String posId, String locationId, String bulkRef, String responsibleNode) {
+    return mobilePayTransactionDAO.create(TransactionStatus.PENDING, "mobilepay", orderId, machineId, serverId, amount, failureUrl, successUrl, posId, locationId, bulkRef, null, null, null, responsibleNode);
   }
 
-  public List<MobilePayTransaction> listPendingMobilePayTransactions() {
-    return mobilePayTransactionDAO.listByStatus(TransactionStatus.PENDING);
+  public List<MobilePayTransaction> listPendingMobilePayTransactions(String responsibleNode) {
+    return mobilePayTransactionDAO.listByStatusAndResponsibleNode(TransactionStatus.PENDING, responsibleNode);
   }
 
   public Transaction updateTransactionStatus(Transaction transaction, TransactionStatus status) {
     return transactionDAO.updateStatus(transaction, status);
+  }
+
+  public List<Transaction> listOrphanedTransactions(List<String> validNodeNames) {
+    return transactionDAO.listByStatusAndResponsibleNodeNotIn(TransactionStatus.PENDING, validNodeNames);
+  }
+  
+  public Transaction updateTransactionResponsibleNode(Transaction transaction, String responsibleNode) {
+    return transactionDAO.updateResponsibleNode(transaction, responsibleNode);
   }
   
 }

@@ -20,7 +20,7 @@ import fi.metatavu.acgbridge.server.persistence.model.TransactionStatus;
 @ApplicationScoped
 public class MobilePayTransactionDAO extends AbstractDAO<MobilePayTransaction> {
 
-  public MobilePayTransaction create(TransactionStatus status, String paymentStrategy, String orderId, String machineId, String serverId, Double amount, String failureUrl, String successUrl, String posId, String locationId, String bulkRef, Integer reCalc, String customerToken, String customerReceiptToken) {
+  public MobilePayTransaction create(TransactionStatus status, String paymentStrategy, String orderId, String machineId, String serverId, Double amount, String failureUrl, String successUrl, String posId, String locationId, String bulkRef, Integer reCalc, String customerToken, String customerReceiptToken, String responsibleNode) {
     MobilePayTransaction mobilePayTransaction = new MobilePayTransaction();
     mobilePayTransaction.setStatus(status);
     mobilePayTransaction.setAmount(amount);
@@ -36,10 +36,11 @@ public class MobilePayTransactionDAO extends AbstractDAO<MobilePayTransaction> {
     mobilePayTransaction.setReCalc(reCalc);
     mobilePayTransaction.setCustomerToken(customerToken);
     mobilePayTransaction.setCustomerReceiptToken(customerReceiptToken);
+    mobilePayTransaction.setResponsibleNode(responsibleNode);
     return persist(mobilePayTransaction);
   }
 
-  public List<MobilePayTransaction> listByStatus(TransactionStatus status) {
+  public List<MobilePayTransaction> listByStatusAndResponsibleNode(TransactionStatus status, String responsibleNode) {
     EntityManager entityManager = getEntityManager();
 
     CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
@@ -47,7 +48,10 @@ public class MobilePayTransactionDAO extends AbstractDAO<MobilePayTransaction> {
     Root<MobilePayTransaction> root = criteria.from(MobilePayTransaction.class);
     criteria.select(root);
     criteria.where(
-      criteriaBuilder.equal(root.get(MobilePayTransaction_.status), status)
+      criteriaBuilder.and(
+        criteriaBuilder.equal(root.get(MobilePayTransaction_.status), status),
+        criteriaBuilder.equal(root.get(MobilePayTransaction_.responsibleNode), responsibleNode)
+      )
     );
 
     return entityManager.createQuery(criteria).getResultList();

@@ -65,6 +65,8 @@ public class Transaction {
   @Enumerated (EnumType.STRING)
   private TransactionStatus status;
 
+  private String responsibleNode;
+
   public Long getId() {
     return id;
   }
@@ -135,6 +137,14 @@ public class Transaction {
   
   public TransactionStatus getStatus() {
     return status;
+  }
+  
+  public String getResponsibleNode() {
+    return responsibleNode;
+  }
+  
+  public void setResponsibleNode(String responsibleNode) {
+    this.responsibleNode = responsibleNode;
   }
 
 }

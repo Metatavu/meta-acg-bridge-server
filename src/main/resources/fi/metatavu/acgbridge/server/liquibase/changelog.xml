@@ -89,4 +89,13 @@
     <addUniqueConstraint constraintName="UN_MOBILEPAY_POS_UNIT_ID" columnNames="posUnitId" tableName="MobilePayPosId"/>    
   </changeSet>
   
+  <changeSet id="TransactionResponsibleNode" author="antti.leppa">
+    <addColumn tableName="Transaction">
+      <column name="responsibleNode" type="varchar(255)"/>
+    </addColumn>
+    <createIndex tableName="Transaction" indexName="IND_TRANSACTION_RESPONSIBLE_NODE">
+      <column name="responsibleNode"></column>
+    </createIndex>
+  </changeSet>
+  
 </databaseChangeLog>

@@ -11,6 +11,7 @@ import javax.enterprise.concurrent.ManagedScheduledExecutorService;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import fi.metatavu.acgbridge.server.cluster.ClusterController;
 import fi.metatavu.acgbridge.server.payment.PaymentStrategy;
 import fi.metatavu.acgbridge.server.persistence.model.MobilePayTransaction;
 import fi.metatavu.acgbridge.server.persistence.model.Transaction;
@@ -37,6 +38,9 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
 
   @Inject
   private MobilePayPosIdController mobilePayPosIdController;
+  
+  @Inject
+  private ClusterController clusterController;
   
   @Resource
   private ManagedScheduledExecutorService managedScheduledExecutorService;
@@ -71,7 +75,7 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
       return null;
     }
     
-    return transactionController.createMobilePayTransaction(orderId, machineId, serverId, amount, failureUrl, successUrl, posId, locationId, bulkRef);
+    return transactionController.createMobilePayTransaction(orderId, machineId, serverId, amount, failureUrl, successUrl, posId, locationId, bulkRef, clusterController.getLocalNodeName());
   }
   
   @Override
