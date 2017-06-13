@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.1.xsd">
+
+  <changeSet id="SystemSettings" author="antti.leppa">
+    <createTable tableName="SystemSetting">
+      <column name="id" type="bigint(20)" autoIncrement="true">
+        <constraints nullable="false" primaryKey="true"/>
+      </column>
+      <column name="settingKey" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="value" type="longtext">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <addUniqueConstraint constraintName="UN_SYSTEM_SETTING_SETTING_KEY" columnNames="settingKey" tableName="SystemSetting"/>    
+  </changeSet>
+  
+  <changeSet id="Transaction" author="antti.leppa">
+    <createTable tableName="Transaction">
+      <column name="id" type="bigint(20)" autoIncrement="true">
+        <constraints nullable="false" primaryKey="true"/>
+      </column>
+      <column name="orderId" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="machineId" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="successUrl" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="failureUrl" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="paymentStrategy" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="amount" type="double">
+        <constraints nullable="false"/>
+      </column>
+      <column name="status" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+  </changeSet>
+  
+  <changeSet id="TransactionServerId" author="antti.leppa">
+    <addColumn tableName="Transaction">
+      <column name="serverId" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+    </addColumn>
+  </changeSet>
+  
+  <changeSet id="MobilePayTransaction" author="antti.leppa">
+    <createTable tableName="MobilePayTransaction">
+      <column name="id" type="bigint(20)">
+        <constraints nullable="false" primaryKey="true"/>
+      </column>
+      
+      <column name="posId" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="locationId" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="reCalc" type="int"/>
+      <column name="customerToken" type="varchar(255)"/>
+      <column name="customerReceiptToken" type="varchar(255)"/>
+      <column name="bulkRef" type="varchar(255)"/>
+    </createTable>
+    
+    <addForeignKeyConstraint constraintName="FK_MOBILEPAY_TRANSACTION_TRANSACTION_ID" referencedTableName="Transaction" baseColumnNames="id" baseTableName="MobilePayTransaction" referencedColumnNames="id"/>
+  </changeSet>
+  
+  <changeSet id="MobilePayPosId" author="antti.leppa">
+    <createTable tableName="MobilePayPosId">
+      <column name="id" type="bigint(20)" autoIncrement="true">
+        <constraints nullable="false" primaryKey="true"/>
+      </column>
+      <column name="posUnitId" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="posId" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    <addUniqueConstraint constraintName="UN_MOBILEPAY_POS_UNIT_ID" columnNames="posUnitId" tableName="MobilePayPosId"/>    
+  </changeSet>
+  
+</databaseChangeLog>
