@@ -58,7 +58,7 @@
 
     <!-- API Spec -->
 
-    <meta-acg-bridge-spec.version>0.0.2</meta-acg-bridge-spec.version>
+    <meta-acg-bridge-spec.version>0.0.3</meta-acg-bridge-spec.version>
     
     <!-- slf4j-api -->
     
