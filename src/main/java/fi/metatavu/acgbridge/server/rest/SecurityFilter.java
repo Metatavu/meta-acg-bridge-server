@@ -86,8 +86,9 @@ public class SecurityFilter implements ContainerRequestFilter {
     }
     
     try {
-      if (!StringUtils.equals(credentials[1], signatureBuilder.build())) {
-        handleUnuauthorized(requestContext, "Invalid signature");
+      String expectedSignature = signatureBuilder.build();
+      if (!StringUtils.equals(credentials[1], expectedSignature)) {
+        handleUnuauthorized(requestContext, String.format("Signature from %s does not match %s", url, expectedSignature));
         return;        
       }
     } catch (HmacSignatureException e) {
