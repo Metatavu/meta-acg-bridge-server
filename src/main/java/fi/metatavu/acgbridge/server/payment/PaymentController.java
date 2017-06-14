@@ -8,6 +8,7 @@ import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.lang3.StringUtils;
 
+import fi.metatavu.acgbridge.server.persistence.model.Client;
 import fi.metatavu.acgbridge.server.persistence.model.Transaction;
 
 public class PaymentController {
@@ -16,7 +17,7 @@ public class PaymentController {
   @Any
   private Instance<PaymentStrategy> paymentStrategies;
 
-  public Response createTransaction(fi.metatavu.acgbridge.server.rest.model.Transaction payload) {
+  public Response createTransaction(Client client, fi.metatavu.acgbridge.server.rest.model.Transaction payload) {
     PaymentStrategy paymentStrategy = findPaymentStrategy(payload.getPaymentStrategy());
     if (paymentStrategy == null) {
       return Response.status(Status.BAD_REQUEST)
@@ -24,7 +25,7 @@ public class PaymentController {
         .build();
     }
     
-    Transaction transaction = paymentStrategy.createTransaction(payload);    
+    Transaction transaction = paymentStrategy.createTransaction(client, payload);    
     if (transaction == null) {
       return Response.status(Status.SERVICE_UNAVAILABLE)
         .entity("Failed to create transaction")

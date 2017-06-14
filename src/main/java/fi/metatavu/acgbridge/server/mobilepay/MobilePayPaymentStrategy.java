@@ -13,6 +13,7 @@ import javax.inject.Inject;
 
 import fi.metatavu.acgbridge.server.cluster.ClusterController;
 import fi.metatavu.acgbridge.server.payment.PaymentStrategy;
+import fi.metatavu.acgbridge.server.persistence.model.Client;
 import fi.metatavu.acgbridge.server.persistence.model.MobilePayTransaction;
 import fi.metatavu.acgbridge.server.persistence.model.Transaction;
 import fi.metatavu.acgbridge.server.rest.model.TransactionProperty;
@@ -51,7 +52,7 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
   }
   
   @Override
-  public Transaction createTransaction(fi.metatavu.acgbridge.server.rest.model.Transaction payload) {
+  public Transaction createTransaction(Client client, fi.metatavu.acgbridge.server.rest.model.Transaction payload) {
     Map<String, String> properties = getProperties(payload.getProperties());
     String orderId = payload.getOrderId();
     String machineId = payload.getMachineId();
@@ -75,7 +76,7 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
       return null;
     }
     
-    return transactionController.createMobilePayTransaction(orderId, machineId, serverId, amount, failureUrl, successUrl, posId, locationId, bulkRef, clusterController.getLocalNodeName());
+    return transactionController.createMobilePayTransaction(client, orderId, machineId, serverId, amount, failureUrl, successUrl, posId, locationId, bulkRef, clusterController.getLocalNodeName());
   }
   
   @Override

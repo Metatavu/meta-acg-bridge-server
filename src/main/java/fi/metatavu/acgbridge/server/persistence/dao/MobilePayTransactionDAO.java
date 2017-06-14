@@ -8,6 +8,7 @@ import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Root;
 
+import fi.metatavu.acgbridge.server.persistence.model.Client;
 import fi.metatavu.acgbridge.server.persistence.model.MobilePayTransaction;
 import fi.metatavu.acgbridge.server.persistence.model.MobilePayTransaction_;
 import fi.metatavu.acgbridge.server.persistence.model.TransactionStatus;
@@ -20,8 +21,9 @@ import fi.metatavu.acgbridge.server.persistence.model.TransactionStatus;
 @ApplicationScoped
 public class MobilePayTransactionDAO extends AbstractDAO<MobilePayTransaction> {
 
-  public MobilePayTransaction create(TransactionStatus status, String paymentStrategy, String orderId, String machineId, String serverId, Double amount, String failureUrl, String successUrl, String posId, String locationId, String bulkRef, Integer reCalc, String customerToken, String customerReceiptToken, String responsibleNode) {
+  public MobilePayTransaction create(Client client, TransactionStatus status, String paymentStrategy, String orderId, String machineId, String serverId, Double amount, String failureUrl, String successUrl, String posId, String locationId, String bulkRef, Integer reCalc, String customerToken, String customerReceiptToken, String responsibleNode) {
     MobilePayTransaction mobilePayTransaction = new MobilePayTransaction();
+    mobilePayTransaction.setClient(client);
     mobilePayTransaction.setStatus(status);
     mobilePayTransaction.setAmount(amount);
     mobilePayTransaction.setFailureUrl(failureUrl);

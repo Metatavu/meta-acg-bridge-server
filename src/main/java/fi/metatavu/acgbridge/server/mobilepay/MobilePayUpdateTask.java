@@ -26,6 +26,8 @@ import fi.metatavu.acgbridge.server.persistence.model.MobilePayTransaction;
 import fi.metatavu.acgbridge.server.persistence.model.TransactionStatus;
 import fi.metatavu.acgbridge.server.rest.model.Transaction;
 import fi.metatavu.acgbridge.server.rest.model.TransactionProperty;
+import fi.metatavu.acgbridge.server.security.HmacSignatureBuilder;
+import fi.metatavu.acgbridge.server.security.HmacSignatureException;
 import fi.metatavu.acgbridge.server.transactions.TransactionController;
 import fi.metatavu.mobilepay.MobilePayApi;
 import fi.metatavu.mobilepay.MobilePayApiException;
@@ -115,8 +117,10 @@ public class MobilePayUpdateTask implements Runnable {
   }
 
   private void handleWebhook(MobilePayTransaction transaction, TransactionStatus transactionStatus) {
+    String signatureKey = transaction.getClient().getSecretKey();
+    
     try {
-      int status = fireWebhook(transactionStatus == TransactionStatus.SUCCESS ? transaction.getSuccessUrl() : transaction.getFailureUrl(), transaction);
+      int status = fireWebhook(transactionStatus == TransactionStatus.SUCCESS ? transaction.getSuccessUrl() : transaction.getFailureUrl(), signatureKey, transaction);
       if (status == 200) {
         transactionController.updateTransactionStatus(transaction, transactionStatus);
       } else {
@@ -124,6 +128,8 @@ public class MobilePayUpdateTask implements Runnable {
       }
     } catch (IOException e) {
       logger.log(Level.SEVERE, FAILED_NOTIFY_CALLER, e);
+    } catch (HmacSignatureException e) {
+      logger.log(Level.SEVERE, "Failed to create HMAC signature", e);
     }
   }
 
@@ -134,8 +140,7 @@ public class MobilePayUpdateTask implements Runnable {
     return result;
   }
   
-  
-  private int fireWebhook(String url, MobilePayTransaction transaction) throws IOException {
+  private int fireWebhook(String url, String signatureKey, MobilePayTransaction transaction) throws IOException, HmacSignatureException {
     List<TransactionProperty> properties = new  ArrayList<>(3);
     properties.add(createProperty("locationId", transaction.getLocationId()));
     properties.add(createProperty("bulkRef", transaction.getBulkRef()));
@@ -153,29 +158,33 @@ public class MobilePayUpdateTask implements Runnable {
     payloadModel.setSuccessUrl(transaction.getSuccessUrl());
     
     String payload = (new ObjectMapper()).writeValueAsString(payloadModel);
-    String authorization = "TODO";
     
-    return sendWebhook(url, payload, authorization);
+    return sendWebhook(url, payload, signatureKey);
   }
   
-  private int sendWebhook(String url, String payload, String authorization) throws IOException {
+  private int sendWebhook(String url, String payload, String signatureKey) throws IOException, HmacSignatureException {
     CloseableHttpClient httpClient = HttpClients.createDefault();
     try {
-      return executePostRequest(httpClient, url, payload, authorization);
+      String signature = new HmacSignatureBuilder(signatureKey)
+        .append(url)
+        .append(payload)
+        .build();
+      
+      return executePostRequest(httpClient, url, payload, signature);
     } finally {
       closeClient(httpClient);
     }
   }
   
-  private int executePostRequest(CloseableHttpClient httpClient, String url, String data, String authorization) throws IOException {
+  private int executePostRequest(CloseableHttpClient httpClient, String url, String data, String signature) throws IOException {
     HttpPost httpPost = new HttpPost(url);
     httpPost.setEntity(new StringEntity(data, "UTF-8"));
     
-    return executeRequest(httpClient, httpPost, authorization);
+    return executeRequest(httpClient, httpPost, signature);
   }
   
-  private int executeRequest(CloseableHttpClient httpClient, HttpPost request, String authorization) throws IOException {
-    request.addHeader("Authorization", authorization);
+  private int executeRequest(CloseableHttpClient httpClient, HttpPost request, String signature) throws IOException {
+    request.addHeader("X-META-ACG-BRIDGE-AUTH", signature);
     request.addHeader("Content-Type", "application/json");
     
     try (CloseableHttpResponse response = httpClient.execute(request)) {

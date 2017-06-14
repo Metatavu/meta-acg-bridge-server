@@ -9,6 +9,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Inheritance;
 import javax.persistence.InheritanceType;
+import javax.persistence.ManyToOne;
 import javax.validation.constraints.NotNull;
 
 import org.hibernate.validator.constraints.NotEmpty;
@@ -64,6 +65,9 @@ public class Transaction {
   @Column(nullable = false)
   @Enumerated (EnumType.STRING)
   private TransactionStatus status;
+  
+  @ManyToOne (optional = false)
+  private Client client;
 
   private String responsibleNode;
 
@@ -137,6 +141,14 @@ public class Transaction {
   
   public TransactionStatus getStatus() {
     return status;
+  }
+  
+  public Client getClient() {
+    return client;
+  }
+  
+  public void setClient(Client client) {
+    this.client = client;
   }
   
   public String getResponsibleNode() {

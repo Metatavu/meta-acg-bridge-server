@@ -98,4 +98,28 @@
     </createIndex>
   </changeSet>
   
+  <changeSet id="Client" author="antti.leppa">
+    <createTable tableName="Client">
+      <column name="id" type="bigint(20)" autoIncrement="true">
+        <constraints nullable="false" primaryKey="true"/>
+      </column>
+      <column name="clientId" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+      <column name="secretKey" type="varchar(255)">
+        <constraints nullable="false"/>
+      </column>
+    </createTable>
+    
+    <addUniqueConstraint constraintName="UN_CLIENT_CLIENT_ID" columnNames="clientId" tableName="Client"/>    
+    
+    <addColumn tableName="Transaction">
+      <column name="client_id" type="bigint(20)">
+        <constraints nullable="false"/>
+      </column>
+    </addColumn>
+    
+    <addForeignKeyConstraint constraintName="FK_TRANSACTION_CLIENT_ID" referencedTableName="Client" baseColumnNames="client_id" baseTableName="Transaction" referencedColumnNames="id"/>
+  </changeSet>
+  
 </databaseChangeLog>

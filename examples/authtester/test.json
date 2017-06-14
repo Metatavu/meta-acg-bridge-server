@@ -1,0 +1,19 @@
+{
+  "orderId": "0001",
+  "machineId": "0001",
+  "serverId": "0001",
+  "successUrl": "http://www.example.com/success",
+  "failureUrl": "http://www.example.com/success",
+  "paymentStrategy": "mobilepay",
+  "amount": 1.00,
+  "properties": [
+    {
+      "key": "name",
+      "value": "testilaitos"
+    },
+    {
+      "key": "locationId",
+      "value": "00001"
+    }
+  ]
+}

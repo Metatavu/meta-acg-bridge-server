@@ -7,6 +7,7 @@ import javax.inject.Inject;
 
 import fi.metatavu.acgbridge.server.persistence.dao.MobilePayTransactionDAO;
 import fi.metatavu.acgbridge.server.persistence.dao.TransactionDAO;
+import fi.metatavu.acgbridge.server.persistence.model.Client;
 import fi.metatavu.acgbridge.server.persistence.model.MobilePayTransaction;
 import fi.metatavu.acgbridge.server.persistence.model.Transaction;
 import fi.metatavu.acgbridge.server.persistence.model.TransactionStatus;
@@ -25,8 +26,8 @@ public class TransactionController {
   @Inject
   private MobilePayTransactionDAO mobilePayTransactionDAO;
   
-  public Transaction createMobilePayTransaction(String orderId, String machineId, String serverId, Double amount, String failureUrl, String successUrl, String posId, String locationId, String bulkRef, String responsibleNode) {
-    return mobilePayTransactionDAO.create(TransactionStatus.PENDING, "mobilepay", orderId, machineId, serverId, amount, failureUrl, successUrl, posId, locationId, bulkRef, null, null, null, responsibleNode);
+  public Transaction createMobilePayTransaction(Client client, String orderId, String machineId, String serverId, Double amount, String failureUrl, String successUrl, String posId, String locationId, String bulkRef, String responsibleNode) {
+    return mobilePayTransactionDAO.create(client, TransactionStatus.PENDING, "mobilepay", orderId, machineId, serverId, amount, failureUrl, successUrl, posId, locationId, bulkRef, null, null, null, responsibleNode);
   }
 
   public List<MobilePayTransaction> listPendingMobilePayTransactions(String responsibleNode) {
