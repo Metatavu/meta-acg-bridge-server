@@ -1,1 +1,1 @@
-# meta-acg-bridge-server
+# Meta ACG Bridge Server
