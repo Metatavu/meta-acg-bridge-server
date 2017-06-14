@@ -8,6 +8,7 @@ import java.util.logging.Logger;
 
 import javax.annotation.Resource;
 import javax.ejb.EJBContext;
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.transaction.SystemException;
 import javax.transaction.UserTransaction;
@@ -34,6 +35,7 @@ import fi.metatavu.mobilepay.MobilePayApiException;
 import fi.metatavu.mobilepay.client.MobilePayResponse;
 import fi.metatavu.mobilepay.model.PaymentStatusResponse;
 
+@ApplicationScoped
 public class MobilePayUpdateTask implements Runnable {
 
   private static final String FAILED_NOTIFY_CALLER = "Failed notify caller";
