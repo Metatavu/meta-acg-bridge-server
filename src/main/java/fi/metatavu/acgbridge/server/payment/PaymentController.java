@@ -1,5 +1,6 @@
 package fi.metatavu.acgbridge.server.payment;
 
+import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
@@ -11,6 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 import fi.metatavu.acgbridge.server.persistence.model.Client;
 import fi.metatavu.acgbridge.server.persistence.model.Transaction;
 
+@ApplicationScoped
 public class PaymentController {
   
   @Inject
