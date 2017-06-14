@@ -15,6 +15,7 @@ import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.ext.Provider;
 
 import org.apache.commons.io.IOUtils;
@@ -24,6 +25,7 @@ import fi.metatavu.acgbridge.server.persistence.model.Client;
 import fi.metatavu.acgbridge.server.security.ClientController;
 import fi.metatavu.acgbridge.server.security.HmacSignatureBuilder;
 import fi.metatavu.acgbridge.server.security.HmacSignatureException;
+import fi.metatavu.acgbridge.server.security.AuthenticationWhitelistController;
 
 @Provider
 public class SecurityFilter implements ContainerRequestFilter {
@@ -32,6 +34,9 @@ public class SecurityFilter implements ContainerRequestFilter {
   
   @Inject
   private Logger logger; 
+  
+  @Inject
+  private AuthenticationWhitelistController authenticationWhitelistController;
   
   @Inject
   private ClientController clientController;
@@ -44,6 +49,13 @@ public class SecurityFilter implements ContainerRequestFilter {
   
   @Override
   public void filter(ContainerRequestContext requestContext) {
+    UriInfo uriInfo = requestContext.getUriInfo();
+    String path = uriInfo.getPath();
+    
+    if (authenticationWhitelistController.isWhitelisted(path)) {
+      return;
+    }
+    
     String authorizationHeader = requestContext.getHeaderString(AUTHORIZATION_HEADER);
     if (StringUtils.isBlank(authorizationHeader)) {
       handleUnuauthorized(requestContext, "Missing authorization header");
@@ -69,7 +81,7 @@ public class SecurityFilter implements ContainerRequestFilter {
     }
     
     HmacSignatureBuilder signatureBuilder = new HmacSignatureBuilder(client.getSecretKey());
-    String url = requestContext.getUriInfo().getAbsolutePath().toString();
+    String url = uriInfo.getAbsolutePath().toString();
     
     signatureBuilder.append(url);
     
@@ -88,7 +100,7 @@ public class SecurityFilter implements ContainerRequestFilter {
     try {
       String expectedSignature = signatureBuilder.build();
       if (!StringUtils.equals(credentials[1], expectedSignature)) {
-        handleUnuauthorized(requestContext, String.format("Signature from %s does not match %s", url, authorizationHeader));
+        handleUnuauthorized(requestContext, "Signature from does not match");
         return;        
       }
     } catch (HmacSignatureException e) {
