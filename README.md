@@ -1,6 +1,6 @@
 # Meta ACG Bridge Server
 
-## Authentication
+## Request authorization
 
 Authentication to server is done by sending HMAC encrypted signature inside Authorization -header.
 
