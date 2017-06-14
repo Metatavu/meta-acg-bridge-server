@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>fi.metatavu.meta-acg-bridge</groupId>
   <artifactId>meta-acg-bridge-server</artifactId>
-  <version>0.0.7</version>
+  <version>0.0.8-SNAPSHOT</version>
   <packaging>war</packaging>
   <name>Meta ACG Bridge Server</name>
   <description>Meta ACG Bridge server</description>
@@ -33,7 +33,7 @@
     <developerConnection>scm:git:git@github.com:Metatavu/meta-acg-bridge-server.git</developerConnection>
     <url>git@github.com:Metatavu/meta-acg-bridge-server.git</url>
     <connection>scm:git:git@github.com:Metatavu/meta-acg-bridge-server.git</connection>
-    <tag>0.0.7</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <organization>
