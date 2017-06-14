@@ -26,4 +26,9 @@ public class V1ApiImpl extends fi.metatavu.acgbridge.server.rest.V1Api {
     return paymentController.createTransaction(client, transaction);
   }
 
+  @Override
+  public Response getSystemPing(Request request) {
+    return Response.ok("PONG").build();
+  }
+
 }
