@@ -11,14 +11,14 @@ public class AuthTester {
   public static void main(String[] args) throws Exception {
     // Esimerkissä body ladataan tiedostosta. Normaalisti tämä tulisi palvelimelta
     String body = IOUtils.toString(AuthTester.class.getClassLoader().getResourceAsStream("test.json"), "UTF-8");
-    // Url osoite, johon kutsu lähetetään
-    String url = "http://dev-acg-bridge.metatavu.io:8080/v1/transactions";
+    // Polku, johon kutsu lähetetään
+    String path = "/v1/transactions";
     // ClientId sekä secret
     String clientId = "test-client";
     String secretKey = "mega-secret";
     
     // Luodaan signaturen sisäĺtö yhdistämällä url -osoite sekä body erottimella |
-    String signatureContents = String.format("%s|%s", url, body);
+    String signatureContents = String.format("%s|%s", path, body);
     // Lasketaan signaturesta HMAC
     String hmac = calculateHmac(signatureContents, secretKey);
     // Yhdistetään clientId ja hmac merkillä : ja base64 enkoodataan tulos
