@@ -1,6 +1,7 @@
 package fi.metatavu.acgbridge.server.persistence.dao;
 
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -36,6 +37,23 @@ public class TransactionDAO extends AbstractDAO<Transaction> {
       criteriaBuilder.and(
         criteriaBuilder.equal(root.get(Transaction_.status), status),
         criteriaBuilder.not(root.get(Transaction_.responsibleNode).in(responsibleNodes))
+      )
+    );
+
+    return entityManager.createQuery(criteria).getResultList();
+  }
+
+  public List<Transaction> listByStatusAndCreatedBefore(TransactionStatus status, Date before) {
+    EntityManager entityManager = getEntityManager();
+
+    CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+    CriteriaQuery<Transaction> criteria = criteriaBuilder.createQuery(Transaction.class);
+    Root<Transaction> root = criteria.from(Transaction.class);
+    criteria.select(root);
+    criteria.where(
+      criteriaBuilder.and(
+        criteriaBuilder.equal(root.get(Transaction_.status), status),
+        criteriaBuilder.lessThanOrEqualTo(root.get(Transaction_.created), before)
       )
     );
 

@@ -33,7 +33,7 @@
     <developerConnection>scm:git:git@github.com:Metatavu/meta-acg-bridge-server.git</developerConnection>
     <url>git@github.com:Metatavu/meta-acg-bridge-server.git</url>
     <connection>scm:git:git@github.com:Metatavu/meta-acg-bridge-server.git</connection>
-    <tag>HEAD</tag>
+    <tag>0.0.7</tag>
   </scm>
 
   <organization>
