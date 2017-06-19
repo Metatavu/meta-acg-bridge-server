@@ -81,9 +81,7 @@ public class SecurityFilter implements ContainerRequestFilter {
     }
     
     HmacSignatureBuilder signatureBuilder = new HmacSignatureBuilder(client.getSecretKey());
-    String url = uriInfo.getAbsolutePath().toString();
-    
-    signatureBuilder.append(url);
+    signatureBuilder.append(path);
     
     String method = StringUtils.upperCase(requestContext.getMethod());
     if ("POST".equals(method)) {
