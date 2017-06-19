@@ -1,5 +1,7 @@
 package fi.metatavu.acgbridge.server.persistence.model;
 
+import java.sql.Date;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -26,6 +28,10 @@ public class Transaction {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
+  
+  @NotNull
+  @Column(nullable = false)
+  private Date created;
 
   @NotEmpty
   @NotNull
@@ -77,6 +83,14 @@ public class Transaction {
 
   public void setId(Long id) {
     this.id = id;
+  }
+  
+  public Date getCreated() {
+    return created;
+  }
+  
+  public void setCreated(Date created) {
+    this.created = created;
   }
 
   public String getOrderId() {

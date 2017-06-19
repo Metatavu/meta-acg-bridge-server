@@ -8,6 +8,8 @@ public enum TransactionStatus {
   
   CANCELLED,
   
-  SUCCESS
+  SUCCESS,
+  
+  TIMED_OUT
   
 }

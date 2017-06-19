@@ -1,5 +1,6 @@
 package fi.metatavu.acgbridge.server.transactions;
 
+import java.util.Date;
 import java.util.List;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -40,6 +41,10 @@ public class TransactionController {
 
   public List<Transaction> listOrphanedTransactions(List<String> validNodeNames) {
     return transactionDAO.listByStatusAndResponsibleNodeNotIn(TransactionStatus.PENDING, validNodeNames);
+  }
+
+  public List<Transaction> listPendingTransactionsBefore(Date before) {
+    return transactionDAO.listByStatusAndCreatedBefore(TransactionStatus.PENDING, before);
   }
   
   public Transaction updateTransactionResponsibleNode(Transaction transaction, String responsibleNode) {

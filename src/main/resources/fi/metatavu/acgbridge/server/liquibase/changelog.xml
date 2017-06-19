@@ -122,4 +122,16 @@
     <addForeignKeyConstraint constraintName="FK_TRANSACTION_CLIENT_ID" referencedTableName="Client" baseColumnNames="client_id" baseTableName="Transaction" referencedColumnNames="id"/>
   </changeSet>
   
+  <changeSet id="TransactionCreated" author="antti.leppa">
+    <addColumn tableName="Transaction">
+      <column name="created" type="datetime(6)"/>
+    </addColumn>
+    
+    <update tableName="Transaction">
+      <column name="created">NOW()</column>
+    </update>
+    
+    <addNotNullConstraint tableName="Transaction" columnName="created" columnDataType="datetime(6)"/>
+  </changeSet>
+  
 </databaseChangeLog>
