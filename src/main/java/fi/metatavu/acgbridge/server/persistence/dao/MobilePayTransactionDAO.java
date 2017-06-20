@@ -1,5 +1,6 @@
 package fi.metatavu.acgbridge.server.persistence.dao;
 
+import java.util.Date;
 import java.util.List;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -21,7 +22,7 @@ import fi.metatavu.acgbridge.server.persistence.model.TransactionStatus;
 @ApplicationScoped
 public class MobilePayTransactionDAO extends AbstractDAO<MobilePayTransaction> {
 
-  public MobilePayTransaction create(Client client, TransactionStatus status, String paymentStrategy, String orderId, String machineId, String serverId, Double amount, String failureUrl, String successUrl, String posId, String locationId, String bulkRef, Integer reCalc, String customerToken, String customerReceiptToken, String responsibleNode) {
+  public MobilePayTransaction create(Client client, TransactionStatus status, String paymentStrategy, String orderId, String machineId, String serverId, Double amount, String failureUrl, String successUrl, String posId, String locationId, String bulkRef, Integer reCalc, String customerToken, String customerReceiptToken, String responsibleNode, Date created) {
     MobilePayTransaction mobilePayTransaction = new MobilePayTransaction();
     mobilePayTransaction.setClient(client);
     mobilePayTransaction.setStatus(status);
@@ -39,6 +40,8 @@ public class MobilePayTransactionDAO extends AbstractDAO<MobilePayTransaction> {
     mobilePayTransaction.setCustomerToken(customerToken);
     mobilePayTransaction.setCustomerReceiptToken(customerReceiptToken);
     mobilePayTransaction.setResponsibleNode(responsibleNode);
+    mobilePayTransaction.setCreated(created);
+    
     return persist(mobilePayTransaction);
   }
 

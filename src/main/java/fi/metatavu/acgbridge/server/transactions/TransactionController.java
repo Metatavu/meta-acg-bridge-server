@@ -28,7 +28,7 @@ public class TransactionController {
   private MobilePayTransactionDAO mobilePayTransactionDAO;
   
   public Transaction createMobilePayTransaction(Client client, String orderId, String machineId, String serverId, Double amount, String failureUrl, String successUrl, String posId, String locationId, String bulkRef, String responsibleNode) {
-    return mobilePayTransactionDAO.create(client, TransactionStatus.PENDING, "mobilepay", orderId, machineId, serverId, amount, failureUrl, successUrl, posId, locationId, bulkRef, null, null, null, responsibleNode);
+    return mobilePayTransactionDAO.create(client, TransactionStatus.PENDING, "mobilepay", orderId, machineId, serverId, amount, failureUrl, successUrl, posId, locationId, bulkRef, null, null, null, responsibleNode, new Date());
   }
 
   public List<MobilePayTransaction> listPendingMobilePayTransactions(String responsibleNode) {
