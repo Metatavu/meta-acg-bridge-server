@@ -95,7 +95,7 @@ public class MobilePayUpdateTask implements Runnable {
               handleTransactionDone(transaction);
             break;  
             default:
-              logger.log(Level.SEVERE, String.format("MobilePay responded with %d for transaction %d", paymentStatus.getPaymentStatus()), transaction.getId());
+              logger.log(Level.SEVERE, () -> String.format("MobilePay responded with %d for transaction %d", paymentStatus.getPaymentStatus(), transaction.getId()));
             break;
           }
         } else {
