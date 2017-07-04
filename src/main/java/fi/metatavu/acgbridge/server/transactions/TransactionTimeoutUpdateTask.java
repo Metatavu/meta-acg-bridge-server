@@ -12,6 +12,7 @@ import javax.inject.Inject;
 import javax.transaction.SystemException;
 import javax.transaction.UserTransaction;
 
+import fi.metatavu.acgbridge.server.payment.PaymentController;
 import fi.metatavu.acgbridge.server.persistence.model.Transaction;
 import fi.metatavu.acgbridge.server.persistence.model.TransactionStatus;
 
@@ -22,6 +23,9 @@ public class TransactionTimeoutUpdateTask implements Runnable {
 
   @Inject
   private TransactionController transactionController;
+  
+  @Inject
+  private PaymentController paymentController;
   
   @Resource
   private EJBContext ejbContext;
@@ -52,7 +56,7 @@ public class TransactionTimeoutUpdateTask implements Runnable {
     Date fifteenMinutesAge = Date.from(OffsetDateTime.now().minusMinutes(15).toInstant());
     List<Transaction> timedOutTransactions = transactionController.listPendingTransactionsBefore(fifteenMinutesAge);
     for (Transaction timedOutTransaction : timedOutTransactions) {
-      transactionController.updateTransactionStatus(timedOutTransaction, TransactionStatus.TIMED_OUT);
+      paymentController.cancelTransaction(timedOutTransaction, TransactionStatus.TIMED_OUT);
     }
   }
 

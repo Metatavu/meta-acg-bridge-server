@@ -16,6 +16,8 @@ import fi.metatavu.mobilepay.model.AssignPoSUnitIdToPosRequest;
 import fi.metatavu.mobilepay.model.AssignPoSUnitIdToPosResponse;
 import fi.metatavu.mobilepay.model.GetUniquePoSIdRequest;
 import fi.metatavu.mobilepay.model.GetUniquePoSIdResponse;
+import fi.metatavu.mobilepay.model.PaymentCancelRequest;
+import fi.metatavu.mobilepay.model.PaymentCancelResponse;
 import fi.metatavu.mobilepay.model.PaymentStartRequest;
 import fi.metatavu.mobilepay.model.PaymentStartResponse;
 import fi.metatavu.mobilepay.model.PaymentStatusRequest;
@@ -69,6 +71,26 @@ public class MobilePayApi {
       String hmac = hmacBuilder.createHmac(orderId, posId, merchantId, locationId, amountStr, bulkRef);
       PaymentStartRequest startRequest = new PaymentStartRequest(merchantId, locationId, posId, orderId, amountStr, bulkRef, action, customerTokenCalc, hmac);
       return executeRequest("PaymentStart", startRequest, PaymentStartResponse.class);
+    } catch (MobilePayHmacException | IOException e) {
+      throw new MobilePayApiException(e);
+    }
+  }
+
+  /**
+   * Cancel payment request for current PoS ID.
+   * 
+   * Cancel is principal possible as long as earlier request for payment hasn't been finalized (status 100).
+   * 
+   * A PaymentCancel will delete current payment entity active or not unless earlier finished payment ended in status Done (status code 100) which will remains until a new payment starts.
+   * 
+   * @param locationId Location ID related to current merchant ID and PoS ID.
+   * @param posId Current Point of Sale ID (cash register/terminal).
+   * @throws MobilePayApiException
+   */
+  public MobilePayResponse<PaymentCancelResponse> paymentCancel(String locationId, String posId) throws MobilePayApiException {
+    try {
+      PaymentCancelRequest cancelRequest = new PaymentCancelRequest(merchantId, locationId, posId);
+      return executeRequest("PaymentCancel", cancelRequest, PaymentCancelResponse.class);
     } catch (MobilePayHmacException | IOException e) {
       throw new MobilePayApiException(e);
     }
