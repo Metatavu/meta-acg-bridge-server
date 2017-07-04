@@ -16,6 +16,7 @@ import fi.metatavu.acgbridge.server.payment.PaymentStrategy;
 import fi.metatavu.acgbridge.server.persistence.model.Client;
 import fi.metatavu.acgbridge.server.persistence.model.MobilePayTransaction;
 import fi.metatavu.acgbridge.server.persistence.model.Transaction;
+import fi.metatavu.acgbridge.server.persistence.model.TransactionStatus;
 import fi.metatavu.acgbridge.server.rest.model.TransactionProperty;
 import fi.metatavu.acgbridge.server.transactions.TransactionController;
 import fi.metatavu.mobilepay.MobilePayApi;
@@ -99,6 +100,36 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
     }
     
     return false;
+  }
+  
+  @Override
+  public Transaction cancelTransaction(Transaction transaction, TransactionStatus cancelStatus) {
+    if (transaction instanceof MobilePayTransaction) {
+      MobilePayTransaction mobilePayTransaction = (MobilePayTransaction) transaction;
+      String posId = mobilePayTransaction.getPosId();
+      String locationId = mobilePayTransaction.getLocationId();
+      
+      try {
+        mobilePayApi.paymentCancel(locationId, posId);
+        transactionController.updateTransactionStatus(mobilePayTransaction, cancelStatus);
+        logger.log(Level.INFO, () -> String.format("Cancelled transaction %d with status %s", transaction.getId(), transaction.getStatus()));        
+      } catch (MobilePayApiException e) {
+        logger.log(Level.SEVERE, String.format("Error occurred while cancelling transaction %d", transaction.getId()), e);
+      }
+      
+    } else {
+      logger.log(Level.SEVERE, () -> String.format("Tried to cancelling non-mobilepay transaction %d", transaction.getId()));
+    }
+    
+    return transaction;
+  }
+  
+  @Override
+  public void cancelActiveTransactions(String machineId) {
+    List<MobilePayTransaction> pendingTransactions = transactionController.listPendingMobilePayTransactionsByMachineId(machineId);
+    for (MobilePayTransaction pendingTransaction : pendingTransactions) {
+      cancelTransaction(pendingTransaction, TransactionStatus.CANCELLED);
+    }
   }
   
   private Map<String, String> getProperties(List<TransactionProperty> transactionProperties) {

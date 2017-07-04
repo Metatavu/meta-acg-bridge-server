@@ -35,6 +35,10 @@ public class TransactionController {
     return mobilePayTransactionDAO.listByStatusAndResponsibleNode(TransactionStatus.PENDING, responsibleNode);
   }
 
+  public List<MobilePayTransaction> listPendingMobilePayTransactionsByMachineId(String machineId) {
+    return mobilePayTransactionDAO.listByStatusAndMachineId(TransactionStatus.PENDING, machineId);
+  }
+
   public Transaction updateTransactionStatus(Transaction transaction, TransactionStatus status) {
     return transactionDAO.updateStatus(transaction, status);
   }
