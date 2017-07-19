@@ -78,6 +78,23 @@ public class MobilePayTransactionDAO extends AbstractDAO<MobilePayTransaction> {
 
     return entityManager.createQuery(criteria).getResultList();
   }
+
+  public List<MobilePayTransaction> listByStatusAndOrderId(TransactionStatus status, String orderId) {
+    EntityManager entityManager = getEntityManager();
+
+    CriteriaBuilder criteriaBuilder = entityManager.getCriteriaBuilder();
+    CriteriaQuery<MobilePayTransaction> criteria = criteriaBuilder.createQuery(MobilePayTransaction.class);
+    Root<MobilePayTransaction> root = criteria.from(MobilePayTransaction.class);
+    criteria.select(root);
+    criteria.where(
+      criteriaBuilder.and(
+        criteriaBuilder.equal(root.get(MobilePayTransaction_.status), status),
+        criteriaBuilder.equal(root.get(MobilePayTransaction_.orderId), orderId)
+      )
+    );
+
+    return entityManager.createQuery(criteria).getResultList();
+  }
   
   public MobilePayTransaction updateReCalc(MobilePayTransaction mobilePayTransaction, Integer reCalc) {
     mobilePayTransaction.setReCalc(reCalc);

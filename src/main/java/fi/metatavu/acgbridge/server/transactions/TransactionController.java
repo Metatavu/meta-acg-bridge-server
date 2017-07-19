@@ -39,6 +39,10 @@ public class TransactionController {
     return mobilePayTransactionDAO.listByStatusAndMachineId(TransactionStatus.PENDING, machineId);
   }
 
+  public List<MobilePayTransaction> listPendingMobilePayTransactionsByOrderId(String orderId) {
+    return mobilePayTransactionDAO.listByStatusAndOrderId(TransactionStatus.PENDING, orderId);
+  }
+  
   public Transaction updateTransactionStatus(Transaction transaction, TransactionStatus status) {
     return transactionDAO.updateStatus(transaction, status);
   }

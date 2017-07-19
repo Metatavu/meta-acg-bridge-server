@@ -1,5 +1,6 @@
 package fi.metatavu.acgbridge.server.mobilepay;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -140,6 +141,20 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
     }
     
     return result;
+  }
+
+  @Override
+  public boolean cancelActiveTransactionsByOrderId(String orderId) {
+    List<MobilePayTransaction> pendingTransactions = transactionController.listPendingMobilePayTransactionsByOrderId(orderId);
+    if (pendingTransactions.isEmpty()) {
+      return false;
+    }
+    
+    for (MobilePayTransaction pendingTransaction : pendingTransactions) {
+      cancelTransaction(pendingTransaction, TransactionStatus.CANCELLED);
+    }
+    
+    return true;
   }
   
 }
