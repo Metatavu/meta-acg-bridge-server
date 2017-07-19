@@ -31,4 +31,9 @@ public class V1ApiImpl extends fi.metatavu.acgbridge.server.rest.V1Api {
     return Response.ok("PONG").build();
   }
 
+  @Override
+  public Response cancelTransactions(String paymentStrategy, String orderId, Request request) {
+    return paymentController.cancelTransactionsByOrderId(paymentStrategy, orderId);
+  }
+
 }
