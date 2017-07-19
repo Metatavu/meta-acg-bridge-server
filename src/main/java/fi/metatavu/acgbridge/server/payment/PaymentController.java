@@ -51,6 +51,23 @@ public class PaymentController {
     
     return Response.noContent().build();
   }
+  
+  public Response cancelTransactionsByOrderId(String paymentStrategyName, String orderId) {
+    PaymentStrategy paymentStrategy = findPaymentStrategy(paymentStrategyName);
+    if (paymentStrategy == null) {
+      return Response.status(Status.BAD_REQUEST)
+        .entity(String.format("Invalid payment strategy %s", paymentStrategy))
+        .build();
+    }
+    
+    if (paymentStrategy.cancelActiveTransactionsByOrderId(orderId)) {
+      return Response.status(Status.NO_CONTENT).build();
+    } else {
+      return Response.status(Status.NOT_FOUND)
+        .entity(String.format("Active transactions not found with orderId %s", orderId))
+        .build();
+    }
+  }
 
   public Transaction cancelTransaction(Transaction transaction, TransactionStatus cancelStatus) {
     PaymentStrategy paymentStrategy = findPaymentStrategy(transaction.getPaymentStrategy());
