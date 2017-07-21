@@ -51,6 +51,7 @@ public class SecurityFilter implements ContainerRequestFilter {
   public void filter(ContainerRequestContext requestContext) {
     UriInfo uriInfo = requestContext.getUriInfo();
     String path = uriInfo.getPath();
+    String queryString = uriInfo.getRequestUri().getQuery();
     
     if (authenticationWhitelistController.isWhitelisted(path)) {
       return;
@@ -81,7 +82,12 @@ public class SecurityFilter implements ContainerRequestFilter {
     }
     
     HmacSignatureBuilder signatureBuilder = new HmacSignatureBuilder(client.getSecretKey());
-    signatureBuilder.append(path);
+
+    if (queryString != null) {
+      signatureBuilder.append(String.format("%s?%s", path, queryString));
+    } else {
+      signatureBuilder.append(path);
+    }
     
     String method = StringUtils.upperCase(requestContext.getMethod());
     if ("POST".equals(method)) {
