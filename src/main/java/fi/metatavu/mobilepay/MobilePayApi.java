@@ -1,7 +1,6 @@
 package fi.metatavu.mobilepay;
 
 import java.io.IOException;
-import java.text.DecimalFormat;
 import java.time.OffsetDateTime;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -34,7 +33,6 @@ import fi.metatavu.mobilepay.model.UnRegisterPoSResponse;
 public class MobilePayApi {
   
   private static final String API_VERSION = "V08";
-  private static final DecimalFormat AMOUNT_FORMAT = new DecimalFormat("#.00");
   
   private String apiUrl;
   private String merchantId;
@@ -66,7 +64,7 @@ public class MobilePayApi {
   public MobilePayResponse<PaymentStartResponse> paymentStart(String locationId, String posId, String orderId, Double amount, String bulkRef, String action) throws MobilePayApiException {
     try {
       HmacBuilder hmacBuilder = new HmacBuilder();
-      String amountStr = AMOUNT_FORMAT.format(amount);
+      String amountStr = formatAmount(amount);
       Long customerTokenCalc = 0l;
       String hmac = hmacBuilder.createHmac(orderId, posId, merchantId, locationId, amountStr, bulkRef);
       PaymentStartRequest startRequest = new PaymentStartRequest(merchantId, locationId, posId, orderId, amountStr, bulkRef, action, customerTokenCalc, hmac);
@@ -163,7 +161,11 @@ public class MobilePayApi {
       throw new MobilePayApiException(e);
     }
   }
-
+  
+  private String formatAmount(double amount) {
+    return String.format("%.2f", amount);
+  }
+  
   private <T> MobilePayResponse<T> executeRequest(String command, Object payload, Class<T> responseClass) throws JsonProcessingException, MobilePayHmacException, IOException {
     String url = String.format("%s/%s/%s", apiUrl, API_VERSION, command);
     AuthorizationBuilder authorizationBuilder = new AuthorizationBuilder();
