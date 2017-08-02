@@ -90,7 +90,7 @@ public class SecurityFilter implements ContainerRequestFilter {
     }
     
     String method = StringUtils.upperCase(requestContext.getMethod());
-    if ("POST".equals(method)) {
+    if ("POST".equals(method) || "PUT".equals(method)) {
       try {
         InputStream entityStream = requestContext.getEntityStream();
         byte[] entityBytes = IOUtils.toByteArray(entityStream);
