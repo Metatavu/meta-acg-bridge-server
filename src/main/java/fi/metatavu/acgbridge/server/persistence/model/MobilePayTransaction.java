@@ -19,6 +19,11 @@ public class MobilePayTransaction extends Transaction {
   @NotEmpty
   @NotNull
   @Column(nullable = false)
+  private String merchantId;
+  
+  @NotEmpty
+  @NotNull
+  @Column(nullable = false)
   private String posId;
 
   @NotEmpty
@@ -33,6 +38,14 @@ public class MobilePayTransaction extends Transaction {
   private String customerToken;
 
   private String customerReceiptToken;
+  
+  public String getMerchantId() {
+    return merchantId;
+  }
+  
+  public void setMerchantId(String merchantId) {
+    this.merchantId = merchantId;
+  }
 
   public String getPosId() {
     return posId;

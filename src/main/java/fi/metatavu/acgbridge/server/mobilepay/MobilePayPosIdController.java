@@ -24,6 +24,9 @@ public class MobilePayPosIdController {
 
   @Inject
   private Logger logger;
+
+  @Inject
+  private MobilePaySettingsController mobilePaySettingsController;
   
   @Inject
   private MobilePayApi mobilePayApi;
@@ -31,10 +34,11 @@ public class MobilePayPosIdController {
   @Inject
   private MobilePayPosIdDAO mobilePayPosIdDAO;
   
-  public String getPosId(String posUnitId, String locationId, String name) throws MobilePayApiException {
+  public String getPosId(String merchantId, String posUnitId, String locationId, String name) throws MobilePayApiException {
+    String apiKey = getApiKey(merchantId);
     MobilePayPosId mobilePayPosId = mobilePayPosIdDAO.findByPosUnitId(posUnitId);
     String exisitingPosId = mobilePayPosId != null ? mobilePayPosId.getPosId() : null;
-    String obtainedPosId = ensurePos(exisitingPosId, posUnitId, locationId, name);
+    String obtainedPosId = ensurePos(apiKey, merchantId, exisitingPosId, posUnitId, locationId, name);
     if (obtainedPosId == null) {
       return null;
     }
@@ -50,24 +54,24 @@ public class MobilePayPosIdController {
     return obtainedPosId;
   }
   
-  private String ensurePos(String existingPosId, String existingPosUnitId, String locationId, String name) throws MobilePayApiException {
+  private String ensurePos(String apiKey, String merchantId, String existingPosId, String existingPosUnitId, String locationId, String name) throws MobilePayApiException {
     if (existingPosId == null) {
-      return obtainFreshPosId(existingPosUnitId, locationId, name);
+      return obtainFreshPosId(apiKey, merchantId, existingPosUnitId, locationId, name);
     } else {
-      return ensureExistingPosId(existingPosId, existingPosUnitId, locationId, name);
+      return ensureExistingPosId(apiKey, merchantId, existingPosId, existingPosUnitId, locationId, name);
     }
   }
 
-  private String ensureExistingPosId(String existingPosId, String existingPosUnitId, String locationId, String name) throws MobilePayApiException {
-    MobilePayResponse<ReadPoSAssignPoSUnitIdResponse> readPoSassignUnitIdResponse = mobilePayApi.readPoSAssignPoSUnitId(locationId, existingPosId);
+  private String ensureExistingPosId(String apiKey, String merchantId, String existingPosId, String existingPosUnitId, String locationId, String name) throws MobilePayApiException {
+    MobilePayResponse<ReadPoSAssignPoSUnitIdResponse> readPoSassignUnitIdResponse = mobilePayApi.readPoSAssignPoSUnitId(apiKey, merchantId, locationId, existingPosId);
     if (!readPoSassignUnitIdResponse.isOk()) {
-      MobilePayResponse<RegisterPoSResponse> registerPosResponse = mobilePayApi.registerPoS(locationId, existingPosId, name);
+      MobilePayResponse<RegisterPoSResponse> registerPosResponse = mobilePayApi.registerPoS(apiKey, merchantId, locationId, existingPosId, name);
       if (!registerPosResponse.isOk()) {
         logger.log(Level.SEVERE, () -> String.format("Failed to register pos id [%d]: %s", registerPosResponse.getStatus(), registerPosResponse.getMessage()));
         return null;
       }
       
-      MobilePayResponse<AssignPoSUnitIdToPosResponse> assignPosUnitIdResponse = mobilePayApi.assignPoSUnitIdToPos(locationId, existingPosId, name);
+      MobilePayResponse<AssignPoSUnitIdToPosResponse> assignPosUnitIdResponse = mobilePayApi.assignPoSUnitIdToPos(apiKey, merchantId, locationId, existingPosId, name);
       if (!assignPosUnitIdResponse.isOk()) {
         logger.log(Level.SEVERE, () -> String.format("Failed to assign pos id [%d]: %s", assignPosUnitIdResponse.getStatus(), assignPosUnitIdResponse.getMessage()));
         return null;
@@ -75,37 +79,37 @@ public class MobilePayPosIdController {
       
       return existingPosId;
     } else {
-      return reassignExistingPosId(existingPosId, existingPosUnitId, locationId, name, readPoSassignUnitIdResponse);
+      return reassignExistingPosId(apiKey, merchantId, existingPosId, existingPosUnitId, locationId, name, readPoSassignUnitIdResponse);
     }
   }
 
-  private String reassignExistingPosId(String existingPosId, String existingPosUnitId, String locationId, String name, MobilePayResponse<ReadPoSAssignPoSUnitIdResponse> readPoSassignUnitIdResponse) throws MobilePayApiException {
+  private String reassignExistingPosId(String apiKey, String merchantId, String existingPosId, String existingPosUnitId, String locationId, String name, MobilePayResponse<ReadPoSAssignPoSUnitIdResponse> readPoSassignUnitIdResponse) throws MobilePayApiException {
     String responsePosUnitId = readPoSassignUnitIdResponse.getResponse().getPosUnitId();
     if (StringUtils.isNotBlank(existingPosUnitId)) {
       if (StringUtils.equals(existingPosUnitId, responsePosUnitId)) {
         return existingPosId;
       } else {
-        MobilePayResponse<UnAssignPoSUnitIdToPoSResponse> unAssignPosUnitIdResponse = mobilePayApi.unassignPoSUnitIdToPos(locationId, existingPosId, name);
+        MobilePayResponse<UnAssignPoSUnitIdToPoSResponse> unAssignPosUnitIdResponse = mobilePayApi.unassignPoSUnitIdToPos(apiKey, merchantId, locationId, existingPosId, name);
         if (!unAssignPosUnitIdResponse.isOk()) {
           logger.log(Level.SEVERE, () -> String.format("Failed to unassign pos id [%d]: %s", unAssignPosUnitIdResponse.getStatus(), unAssignPosUnitIdResponse.getMessage()));
-          mobilePayApi.unregisterPoS(locationId, existingPosId);
+          mobilePayApi.unregisterPoS(apiKey, merchantId, locationId, existingPosId);
           return null;
         }
         
-        MobilePayResponse<AssignPoSUnitIdToPosResponse> assignPoSUnitIdToPosResponse = mobilePayApi.assignPoSUnitIdToPos(locationId, existingPosId, existingPosUnitId);
+        MobilePayResponse<AssignPoSUnitIdToPosResponse> assignPoSUnitIdToPosResponse = mobilePayApi.assignPoSUnitIdToPos(apiKey, merchantId, locationId, existingPosId, existingPosUnitId);
         if (!assignPoSUnitIdToPosResponse.isOk()) {
           logger.log(Level.SEVERE, () -> String.format("Failed to reassign pos id [%d]: %s", assignPoSUnitIdToPosResponse.getStatus(), assignPoSUnitIdToPosResponse.getMessage()));
-          mobilePayApi.unregisterPoS(locationId, existingPosId);
+          mobilePayApi.unregisterPoS(apiKey, merchantId, locationId, existingPosId);
           return null;
         }
         
         return existingPosId;
       }
     } else {
-      MobilePayResponse<AssignPoSUnitIdToPosResponse> assignPoSUnitIdToPosResponse = mobilePayApi.assignPoSUnitIdToPos(locationId, existingPosId, existingPosUnitId);
+      MobilePayResponse<AssignPoSUnitIdToPosResponse> assignPoSUnitIdToPosResponse = mobilePayApi.assignPoSUnitIdToPos(apiKey, merchantId, locationId, existingPosId, existingPosUnitId);
       if (!assignPoSUnitIdToPosResponse.isOk()) {
         logger.log(Level.SEVERE, () -> String.format("Failed to reassign pos id [%d]: %s", assignPoSUnitIdToPosResponse.getStatus(), assignPoSUnitIdToPosResponse.getMessage()));
-        mobilePayApi.unregisterPoS(locationId, existingPosId);
+        mobilePayApi.unregisterPoS(apiKey, merchantId, locationId, existingPosId);
         return null;
       }
       
@@ -113,21 +117,21 @@ public class MobilePayPosIdController {
     }
   }
 
-  private String obtainFreshPosId(String existingPosUnitId, String locationId, String name) throws MobilePayApiException {
-    MobilePayResponse<GetUniquePoSIdResponse> uniquePoSIdResponse = mobilePayApi.getUniquePoSId();
+  private String obtainFreshPosId(String apiKey, String merchantId, String existingPosUnitId, String locationId, String name) throws MobilePayApiException {
+    MobilePayResponse<GetUniquePoSIdResponse> uniquePoSIdResponse = mobilePayApi.getUniquePoSId(apiKey, merchantId);
     if (!uniquePoSIdResponse.isOk()) {
       logger.log(Level.SEVERE, () -> String.format("Failed to get unique pos id [%d]: %s", uniquePoSIdResponse.getStatus(), uniquePoSIdResponse.getMessage()));
       return null;
     }
     
     String posId = uniquePoSIdResponse.getResponse().getPoSId();
-    MobilePayResponse<RegisterPoSResponse> registerPosResponse = mobilePayApi.registerPoS(locationId, posId, name);
+    MobilePayResponse<RegisterPoSResponse> registerPosResponse = mobilePayApi.registerPoS(apiKey, merchantId, locationId, posId, name);
     if (!registerPosResponse.isOk()) {
       logger.log(Level.SEVERE, () -> String.format("Failed to register pos id [%d]: %s", registerPosResponse.getStatus(), registerPosResponse.getMessage()));
       return null;
     } else {
       // Get PosUnitid from posunit box using usb, og read from settings file or database
-      MobilePayResponse<AssignPoSUnitIdToPosResponse> assignPosUnitIdResponse = mobilePayApi.assignPoSUnitIdToPos(locationId, posId, existingPosUnitId);
+      MobilePayResponse<AssignPoSUnitIdToPosResponse> assignPosUnitIdResponse = mobilePayApi.assignPoSUnitIdToPos(apiKey, merchantId, locationId, posId, existingPosUnitId);
       if (!assignPosUnitIdResponse.isOk()) {
         logger.log(Level.SEVERE, () -> String.format("Failed to assign pos id [%d]: %s", assignPosUnitIdResponse.getStatus(), assignPosUnitIdResponse.getMessage()));
         return null;
@@ -135,5 +139,9 @@ public class MobilePayPosIdController {
       
       return posId;
     }
+  }
+  
+  private String getApiKey(String merchantId) {
+    return mobilePaySettingsController.getApiKey(merchantId);
   }
 }

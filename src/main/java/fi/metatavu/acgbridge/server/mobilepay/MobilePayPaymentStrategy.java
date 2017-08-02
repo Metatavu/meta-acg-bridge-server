@@ -40,6 +40,9 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
 
   @Inject
   private MobilePayPosIdController mobilePayPosIdController;
+
+  @Inject
+  private MobilePaySettingsController mobilePaySettingsController;
   
   @Inject
   private ClusterController clusterController;
@@ -61,13 +64,14 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
     String successUrl = payload.getSuccessUrl();
     String failureUrl = payload.getFailureUrl();
     Double amount = payload.getAmount();
+    String merchantId = properties.get("merchantId");
     String locationId = properties.get("locationId");
     String bulkRef = properties.containsKey("bulkRef") ? properties.get("bulkRef") : "";
     String name = properties.containsKey("name") ? properties.get("name") : "";
     
     String posId;
     try {
-      posId = mobilePayPosIdController.getPosId(machineId, locationId, name);
+      posId = mobilePayPosIdController.getPosId(merchantId, machineId, locationId, name);
     } catch (MobilePayApiException e) {
       logger.log(Level.SEVERE, String.format("Failed to obtain posId by machineId %s", machineId), e);
       return null;
@@ -77,7 +81,7 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
       return null;
     }
     
-    return transactionController.createMobilePayTransaction(client, orderId, machineId, serverId, amount, failureUrl, successUrl, posId, locationId, bulkRef, clusterController.getLocalNodeName());
+    return transactionController.createMobilePayTransaction(client, merchantId, orderId, machineId, serverId, amount, failureUrl, successUrl, posId, locationId, bulkRef, clusterController.getLocalNodeName());
   }
   
   @Override
@@ -86,9 +90,11 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
     
     String orderId = mobilePayTransaction.getOrderId();
     Double amount = mobilePayTransaction.getAmount();
+    String merchantId = mobilePayTransaction.getMerchantId();
+    String apiKey = getApiKey(merchantId);
     
     try {
-      MobilePayResponse<PaymentStartResponse> paymentStartResponse = mobilePayApi.paymentStart(mobilePayTransaction.getLocationId(), mobilePayTransaction.getPosId(), orderId, amount, mobilePayTransaction.getBulkRef(), "Start");
+      MobilePayResponse<PaymentStartResponse> paymentStartResponse = mobilePayApi.paymentStart(apiKey, merchantId, mobilePayTransaction.getLocationId(), mobilePayTransaction.getPosId(), orderId, amount, mobilePayTransaction.getBulkRef(), "Start");
       if (!paymentStartResponse.isOk()) {
         logger.log(Level.SEVERE, () -> String.format("Failed to start payment [%d]: %s", paymentStartResponse.getStatus(), paymentStartResponse.getMessage()));
         return false;
@@ -108,9 +114,11 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
       MobilePayTransaction mobilePayTransaction = (MobilePayTransaction) transaction;
       String posId = mobilePayTransaction.getPosId();
       String locationId = mobilePayTransaction.getLocationId();
+      String merchantId = mobilePayTransaction.getMerchantId();
+      String apiKey = getApiKey(merchantId);
       
       try {
-        mobilePayApi.paymentCancel(locationId, posId);
+        mobilePayApi.paymentCancel(apiKey, merchantId, locationId, posId);
         transactionController.updateTransactionStatus(mobilePayTransaction, cancelStatus);
         logger.log(Level.INFO, () -> String.format("Cancelled transaction %d with status %s", transaction.getId(), transaction.getStatus()));        
       } catch (MobilePayApiException e) {
@@ -154,6 +162,10 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
     }
     
     return true;
+  }
+  
+  private String getApiKey(String merchantId) {
+    return mobilePaySettingsController.getApiKey(merchantId);
   }
   
 }

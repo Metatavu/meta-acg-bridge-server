@@ -47,6 +47,9 @@ public class MobilePayUpdateTask implements Runnable {
   private MobilePayApi mobilePayApi;
   
   @Inject
+  private MobilePaySettingsController mobilePaySettingsController;
+  
+  @Inject
   private TransactionController transactionController;
 
   @Inject
@@ -81,7 +84,9 @@ public class MobilePayUpdateTask implements Runnable {
     List<MobilePayTransaction> transactions = transactionController.listPendingMobilePayTransactions(clusterController.getLocalNodeName());
     for (MobilePayTransaction transaction : transactions) {
       try {
-        MobilePayResponse<PaymentStatusResponse> response = mobilePayApi.paymentStatus(transaction.getLocationId(), transaction.getPosId(), transaction.getOrderId());
+        String merchantId = transaction.getMerchantId();
+        String apiKey = mobilePaySettingsController.getApiKey(merchantId);
+        MobilePayResponse<PaymentStatusResponse> response = mobilePayApi.paymentStatus(apiKey, merchantId, transaction.getLocationId(), transaction.getPosId(), transaction.getOrderId());
         if (response.isOk()) {
           PaymentStatusResponse paymentStatus = response.getResponse();
           switch (paymentStatus.getPaymentStatus()) {
