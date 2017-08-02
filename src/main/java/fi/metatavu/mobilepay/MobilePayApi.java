@@ -35,16 +35,12 @@ public class MobilePayApi {
   private static final String API_VERSION = "V08";
   
   private String apiUrl;
-  private String merchantId;
-  private String apiKey;
   private MobilePayClient client;
   
-  public MobilePayApi(MobilePayClient client, String apiUrl, String merchantId, String apiKey) {
+  public MobilePayApi(MobilePayClient client, String apiUrl) {
     super();
     this.client = client;
     this.apiUrl = apiUrl;
-    this.merchantId = merchantId;
-    this.apiKey = apiKey;
   }
 
   /**
@@ -53,6 +49,7 @@ public class MobilePayApi {
    * unless it is an update (Action=Update) for a payment entity in state "AwaitTokenRecalc". 
    * A PaymentStart will delete earlier finished payment entities – i.e., payment entities in status 'Done', 'Cancel' or 'Error'.
    * 
+   * @param merchantId MerchantId
    * @param locationId Location ID related to current merchant ID and PoS ID.
    * @param posId Current Point of Sale ID (cash register/terminal).
    * @param orderId The OrderId is a unique id that identifies the payment. The OrderId is issued by the merchant and is attached to the payment inside Danske Bank system. The order ID must be unique for the merchant/location combination. This means that there should be only one completed payment with any given order ID for the same merchant and location (store) during the lifetime of the merchant/location. CASE SENTITIVE
@@ -61,14 +58,14 @@ public class MobilePayApi {
    * @param action Action values: "Start": Initiate a payment. "Update": Update a current payment after recalculation.
    * @throws MobilePayApiException
    */
-  public MobilePayResponse<PaymentStartResponse> paymentStart(String locationId, String posId, String orderId, Double amount, String bulkRef, String action) throws MobilePayApiException {
+  public MobilePayResponse<PaymentStartResponse> paymentStart(String apiKey, String merchantId, String locationId, String posId, String orderId, Double amount, String bulkRef, String action) throws MobilePayApiException {
     try {
       HmacBuilder hmacBuilder = new HmacBuilder();
       String amountStr = formatAmount(amount);
       Long customerTokenCalc = 0l;
       String hmac = hmacBuilder.createHmac(orderId, posId, merchantId, locationId, amountStr, bulkRef);
       PaymentStartRequest startRequest = new PaymentStartRequest(merchantId, locationId, posId, orderId, amountStr, bulkRef, action, customerTokenCalc, hmac);
-      return executeRequest("PaymentStart", startRequest, PaymentStartResponse.class);
+      return executeRequest("PaymentStart", apiKey, startRequest, PaymentStartResponse.class);
     } catch (MobilePayHmacException | IOException e) {
       throw new MobilePayApiException(e);
     }
@@ -81,14 +78,15 @@ public class MobilePayApi {
    * 
    * A PaymentCancel will delete current payment entity active or not unless earlier finished payment ended in status Done (status code 100) which will remains until a new payment starts.
    * 
+   * @param merchantId MerchantId
    * @param locationId Location ID related to current merchant ID and PoS ID.
    * @param posId Current Point of Sale ID (cash register/terminal).
    * @throws MobilePayApiException
    */
-  public MobilePayResponse<PaymentCancelResponse> paymentCancel(String locationId, String posId) throws MobilePayApiException {
+  public MobilePayResponse<PaymentCancelResponse> paymentCancel(String apiKey, String merchantId, String locationId, String posId) throws MobilePayApiException {
     try {
       PaymentCancelRequest cancelRequest = new PaymentCancelRequest(merchantId, locationId, posId);
-      return executeRequest("PaymentCancel", cancelRequest, PaymentCancelResponse.class);
+      return executeRequest("PaymentCancel", apiKey, cancelRequest, PaymentCancelResponse.class);
     } catch (MobilePayHmacException | IOException e) {
       throw new MobilePayApiException(e);
     }
@@ -98,65 +96,70 @@ public class MobilePayApi {
    * Get a payment status for current PoS ID.
    * 
    * Used for polling a payment status. Polling has to be done every 1 second until the PaymentStatus is 100 ('Done') or if it rejects the payment request (PaymentStatus 40 ('Cancel') or 50 ('Error')).
+   * 
+   * @param merchantId MerchantId
+   * @param locationId Location ID related to current merchant ID and PoS ID.
+   * @param posId Current Point of Sale ID (cash register/terminal).
+   * @param orderId The OrderId is a unique id that identifies the payment. The OrderId is issued by the merchant and is attached to the payment inside Danske Bank system. The order ID must be unique for the merchant/location combination. This means that there should be only one completed payment with any given order ID for the same merchant and location (store) during the lifetime of the merchant/location. CASE SENTITIVE
    */
-  public MobilePayResponse<PaymentStatusResponse> paymentStatus(String locationId, String posId, String orderId) throws MobilePayApiException {
+  public MobilePayResponse<PaymentStatusResponse> paymentStatus(String apiKey, String merchantId, String locationId, String posId, String orderId) throws MobilePayApiException {
     try {
       PaymentStatusRequest statusRequest = new PaymentStatusRequest(merchantId, locationId, posId, orderId);
-      return executeRequest("GetPaymentStatus", statusRequest, PaymentStatusResponse.class);
+      return executeRequest("GetPaymentStatus", apiKey, statusRequest, PaymentStatusResponse.class);
     } catch (MobilePayHmacException | IOException e) {
       throw new MobilePayApiException(e);
     }
   }
 
-  public MobilePayResponse<GetUniquePoSIdResponse> getUniquePoSId() throws MobilePayApiException {
+  public MobilePayResponse<GetUniquePoSIdResponse> getUniquePoSId(String apiKey, String merchantId) throws MobilePayApiException {
     try {
       GetUniquePoSIdRequest request = new GetUniquePoSIdRequest(merchantId);
-      return executeRequest("GetUniquePoSId", request, GetUniquePoSIdResponse.class);
+      return executeRequest("GetUniquePoSId", apiKey, request, GetUniquePoSIdResponse.class);
     } catch (MobilePayHmacException | IOException e) {
       throw new MobilePayApiException(e);
     }
   }
 
-  public MobilePayResponse<RegisterPoSResponse> registerPoS(String locationId, String posId, String name) throws MobilePayApiException {
+  public MobilePayResponse<RegisterPoSResponse> registerPoS(String apiKey, String merchantId, String locationId, String posId, String name) throws MobilePayApiException {
     try {
       RegisterPoSRequest request = new RegisterPoSRequest(merchantId, locationId, posId, name);
-      return executeRequest("RegisterPoS", request, RegisterPoSResponse.class);
+      return executeRequest("RegisterPoS", apiKey, request, RegisterPoSResponse.class);
     } catch (MobilePayHmacException | IOException e) {
       throw new MobilePayApiException(e);
     }
   }
 
-  public MobilePayResponse<UnRegisterPoSResponse> unregisterPoS(String locationId, String posId) throws MobilePayApiException {
+  public MobilePayResponse<UnRegisterPoSResponse> unregisterPoS(String apiKey, String merchantId, String locationId, String posId) throws MobilePayApiException {
     try {
       UnRegisterPoSRequest request = new UnRegisterPoSRequest(merchantId, locationId, posId);
-      return executeRequest("UnRegisterPoS", request, UnRegisterPoSResponse.class);
+      return executeRequest("UnRegisterPoS", apiKey, request, UnRegisterPoSResponse.class);
     } catch (MobilePayHmacException | IOException e) {
       throw new MobilePayApiException(e);
     }
   }
 
-  public MobilePayResponse<AssignPoSUnitIdToPosResponse> assignPoSUnitIdToPos(String locationId, String posId, String posUnitIt) throws MobilePayApiException {
+  public MobilePayResponse<AssignPoSUnitIdToPosResponse> assignPoSUnitIdToPos(String apiKey, String merchantId, String locationId, String posId, String posUnitIt) throws MobilePayApiException {
     try {
       AssignPoSUnitIdToPosRequest request = new AssignPoSUnitIdToPosRequest(merchantId, locationId, posId, posUnitIt);
-      return executeRequest("AssignPoSUnitIdToPos", request, AssignPoSUnitIdToPosResponse.class);
+      return executeRequest("AssignPoSUnitIdToPos", apiKey, request, AssignPoSUnitIdToPosResponse.class);
     } catch (MobilePayHmacException | IOException e) {
       throw new MobilePayApiException(e);
     }
   }
   
-  public MobilePayResponse<UnAssignPoSUnitIdToPoSResponse> unassignPoSUnitIdToPos(String locationId, String posId, String posUnitIt) throws MobilePayApiException {
+  public MobilePayResponse<UnAssignPoSUnitIdToPoSResponse> unassignPoSUnitIdToPos(String apiKey, String merchantId, String locationId, String posId, String posUnitIt) throws MobilePayApiException {
     try {
       UnAssignPoSUnitIdToPosRequest request = new UnAssignPoSUnitIdToPosRequest(merchantId, locationId, posId, posUnitIt);
-      return executeRequest("UnAssignPoSUnitIdToPos", request, UnAssignPoSUnitIdToPoSResponse.class);
+      return executeRequest("UnAssignPoSUnitIdToPos", apiKey, request, UnAssignPoSUnitIdToPoSResponse.class);
     } catch (MobilePayHmacException | IOException e) {
       throw new MobilePayApiException(e);
     }
   }
 
-  public MobilePayResponse<ReadPoSAssignPoSUnitIdResponse> readPoSAssignPoSUnitId(String locationId, String posId) throws MobilePayApiException {
+  public MobilePayResponse<ReadPoSAssignPoSUnitIdResponse> readPoSAssignPoSUnitId(String apiKey, String merchantId, String locationId, String posId) throws MobilePayApiException {
     try {
       ReadPoSAssignPoSUnitIdRequest request = new ReadPoSAssignPoSUnitIdRequest(merchantId, locationId, posId);
-      return executeRequest("ReadPoSAssignPoSUnitId", request, ReadPoSAssignPoSUnitIdResponse.class);
+      return executeRequest("ReadPoSAssignPoSUnitId", apiKey, request, ReadPoSAssignPoSUnitIdResponse.class);
     } catch (MobilePayHmacException | IOException e) {
       throw new MobilePayApiException(e);
     }
@@ -166,7 +169,7 @@ public class MobilePayApi {
     return String.format("%.2f", amount);
   }
   
-  private <T> MobilePayResponse<T> executeRequest(String command, Object payload, Class<T> responseClass) throws JsonProcessingException, MobilePayHmacException, IOException {
+  private <T> MobilePayResponse<T> executeRequest(String command, String apiKey, Object payload, Class<T> responseClass) throws JsonProcessingException, MobilePayHmacException, IOException {
     String url = String.format("%s/%s/%s", apiUrl, API_VERSION, command);
     AuthorizationBuilder authorizationBuilder = new AuthorizationBuilder();
     String requestBody = toJson(payload);

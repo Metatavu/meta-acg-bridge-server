@@ -22,7 +22,7 @@ import fi.metatavu.acgbridge.server.persistence.model.TransactionStatus;
 @ApplicationScoped
 public class MobilePayTransactionDAO extends AbstractDAO<MobilePayTransaction> {
 
-  public MobilePayTransaction create(Client client, TransactionStatus status, String paymentStrategy, String orderId, String machineId, String serverId, Double amount, String failureUrl, String successUrl, String posId, String locationId, String bulkRef, Integer reCalc, String customerToken, String customerReceiptToken, String responsibleNode, Date created) {
+  public MobilePayTransaction create(Client client, String merchantId, TransactionStatus status, String paymentStrategy, String orderId, String machineId, String serverId, Double amount, String failureUrl, String successUrl, String posId, String locationId, String bulkRef, Integer reCalc, String customerToken, String customerReceiptToken, String responsibleNode, Date created) {
     MobilePayTransaction mobilePayTransaction = new MobilePayTransaction();
     mobilePayTransaction.setClient(client);
     mobilePayTransaction.setStatus(status);
@@ -41,6 +41,7 @@ public class MobilePayTransactionDAO extends AbstractDAO<MobilePayTransaction> {
     mobilePayTransaction.setCustomerReceiptToken(customerReceiptToken);
     mobilePayTransaction.setResponsibleNode(responsibleNode);
     mobilePayTransaction.setCreated(created);
+    mobilePayTransaction.setMerchantId(merchantId);
     
     return persist(mobilePayTransaction);
   }
