@@ -34,6 +34,7 @@ import fi.metatavu.mobilepay.MobilePayApi;
 import fi.metatavu.mobilepay.MobilePayApiException;
 import fi.metatavu.mobilepay.client.MobilePayResponse;
 import fi.metatavu.mobilepay.model.PaymentStatusResponse;
+import fi.metatavu.mobilepay.model.ReservationStatusResponse;
 
 @ApplicationScoped
 public class MobilePayUpdateTask implements Runnable {
@@ -84,27 +85,16 @@ public class MobilePayUpdateTask implements Runnable {
     List<MobilePayTransaction> transactions = transactionController.listPendingMobilePayTransactions(clusterController.getLocalNodeName());
     for (MobilePayTransaction transaction : transactions) {
       try {
-        String merchantId = transaction.getMerchantId();
-        String apiKey = mobilePaySettingsController.getApiKey(merchantId);
-        MobilePayResponse<PaymentStatusResponse> response = mobilePayApi.paymentStatus(apiKey, merchantId, transaction.getLocationId(), transaction.getPosId(), transaction.getOrderId());
-        if (response.isOk()) {
-          PaymentStatusResponse paymentStatus = response.getResponse();
-          switch (paymentStatus.getPaymentStatus()) {
-            case 40:
-              handleTransactionCancel(transaction);
-            break;
-            case 50:
-              handleTransactionError(transaction);
-            break;
-            case 100:
-              handleTransactionDone(transaction);
-            break;  
-            default:
-              logger.log(Level.SEVERE, () -> String.format("MobilePay responded with %d for transaction %d", paymentStatus.getPaymentStatus(), transaction.getId()));
-            break;
-          }
-        } else {
-          logger.log(Level.SEVERE, () -> String.format("Received [%d]: %s when checking transaction status from MobilePay server", response.getStatus(), response.getStatus()));
+        switch (transaction.getMobilePayTransactionType()) {
+          case DIRECT_PAYMENT:
+            checkDirectPaymentTransaction(transaction);
+          break;
+          case RESERVE_CAPTURE:
+            checkReserveCaptureTransaction(transaction);
+          break;
+          default:
+            logger.log(Level.SEVERE, () -> String.format("Don't know how to handle transaction type %s", transaction.getMobilePayTransactionType()));
+          break;
         }
       } catch (MobilePayApiException e) {
         logger.log(Level.SEVERE, "Failed to check transaction status from MobilePay server", e);
@@ -112,25 +102,119 @@ public class MobilePayUpdateTask implements Runnable {
     }
   }
 
-  private void handleTransactionDone(MobilePayTransaction transaction) {
-    handleWebhook(transaction, TransactionStatus.SUCCESS);
-  }
-  
-  private void handleTransactionError(MobilePayTransaction transaction) {
-    handleWebhook(transaction, TransactionStatus.ERRORED);
-  }
-  
-  private void handleTransactionCancel(MobilePayTransaction transaction) {
-    handleWebhook(transaction, TransactionStatus.CANCELLED);
+  private void checkDirectPaymentTransaction(MobilePayTransaction transaction) throws MobilePayApiException {
+    String merchantId = transaction.getMerchantId();
+    String apiKey = mobilePaySettingsController.getApiKey(merchantId);
+    
+    MobilePayResponse<PaymentStatusResponse> response = mobilePayApi.paymentStatus(apiKey, merchantId, transaction.getLocationId(), transaction.getPosId(), transaction.getOrderId());
+    if (response.isOk()) {
+      PaymentStatusResponse paymentStatus = response.getResponse();
+      switch (paymentStatus.getPaymentStatus()) {
+        case 40: // Cancel
+          handleDirectPaymentCancel(transaction);
+        break;
+        case 50: // Error
+          handleDirectPaymentError(transaction);
+        break;
+        case 100: // Done
+          handleDirectPaymentDone(transaction);
+        break;  
+        default:
+          logger.log(Level.SEVERE, () -> String.format("MobilePay responded with %d for payment %d", paymentStatus.getPaymentStatus(), transaction.getId()));
+        break;
+      }
+    } else {
+      logger.log(Level.SEVERE, () -> String.format("Received [%d]: %s when checking payment status from MobilePay server", response.getStatus(), response.getMessage()));
+    }
   }
 
-  private void handleWebhook(MobilePayTransaction transaction, TransactionStatus transactionStatus) {
+  private void checkReserveCaptureTransaction(MobilePayTransaction transaction) throws MobilePayApiException {
+    String merchantId = transaction.getMerchantId();
+    String apiKey = mobilePaySettingsController.getApiKey(merchantId);
+    String locationId = transaction.getLocationId();
+    String posId = transaction.getPosId();
+    String orderId = transaction.getOrderId();
+    
+    MobilePayResponse<ReservationStatusResponse> mobilePayResponse = mobilePayApi.getReservationStatus(apiKey, merchantId, locationId, posId, orderId);
+    if (mobilePayResponse.isOk()) {
+      ReservationStatusResponse reservationStatusResponse = mobilePayResponse.getResponse();
+      Integer reservationStatus = reservationStatusResponse.getReservationStatus();
+      
+      switch (reservationStatus) {
+        case 40: // Cancel
+          handleReserveCaptureCancel(transaction);
+        break;
+        case 50: // Error
+          handleReserveCaptureError(transaction);
+          break;
+        case 80: // ReservationAccepted
+          handleReserveCaptureAccepted(transaction);
+          break;
+        case 100: // Done
+          handleReserveCaptureDone(transaction);
+          break;
+        default:
+          logger.log(Level.SEVERE, () -> String.format("MobilePay responded with %d for reservation %d", reservationStatus, transaction.getId()));
+        break;
+      }
+    } else {
+      logger.log(Level.SEVERE, () -> String.format("Received [%d]: %s when checking reservation status from MobilePay server", mobilePayResponse.getStatus(), mobilePayResponse.getMessage()));
+    }
+  }
+
+  private void handleDirectPaymentDone(MobilePayTransaction transaction) {
+    if (fireWebhook(transaction, true)) {
+      transactionController.updateTransactionStatus(transaction, TransactionStatus.SUCCESS);
+    }
+  }
+  
+  private void handleDirectPaymentError(MobilePayTransaction transaction) {
+    if (fireWebhook(transaction, false)) {
+      transactionController.updateTransactionStatus(transaction, TransactionStatus.ERRORED);
+    }
+  }
+  
+  private void handleDirectPaymentCancel(MobilePayTransaction transaction) {
+    if (fireWebhook(transaction, false)) {
+      transactionController.updateTransactionStatus(transaction, TransactionStatus.CANCELLED);
+    }
+  }
+
+  private void handleReserveCaptureAccepted(MobilePayTransaction transaction) {
+    // Reservation accepted, fire webhook and mark the transaction as pending (should already be)
+    if (fireWebhook(transaction, true)) {
+      transactionController.updateTransactionStatus(transaction, TransactionStatus.PENDING);
+    }
+  }
+
+  private void handleReserveCaptureError(MobilePayTransaction transaction) {
+    // Error occurred in MobilePay servers, cancelling transaction
+    if (fireWebhook(transaction, false)) {
+      transactionController.updateTransactionStatus(transaction, TransactionStatus.CANCELLED);
+    }
+  }
+
+  private void handleReserveCaptureCancel(MobilePayTransaction transaction) {
+    // User refused to pay the reservation, cancelling transaction as refused
+    if (fireWebhook(transaction, false)) {
+      transactionController.updateTransactionStatus(transaction, TransactionStatus.REFUSED);
+    }
+  }
+
+  private void handleReserveCaptureDone(MobilePayTransaction transaction) {
+    // Reservation has been captured, so we just close the transaction as success
+    if (fireWebhook(transaction, false)) {
+      transactionController.updateTransactionStatus(transaction, TransactionStatus.SUCCESS);
+    }
+  }
+
+  private boolean fireWebhook(MobilePayTransaction transaction, boolean success) {
     String signatureKey = transaction.getClient().getSecretKey();
     
     try {
-      int status = fireWebhook(transactionStatus == TransactionStatus.SUCCESS ? transaction.getSuccessUrl() : transaction.getFailureUrl(), signatureKey, transaction);
+      int status = fireWebhook(success ? transaction.getSuccessUrl() : transaction.getFailureUrl(), signatureKey, transaction);
       if (status == 200) {
-        transactionController.updateTransactionStatus(transaction, transactionStatus);
+        return true;
       } else {
         logger.log(Level.WARNING, () -> String.format("Webhook notification failed on %d", status)); 
       }
@@ -139,6 +223,8 @@ public class MobilePayUpdateTask implements Runnable {
     } catch (HmacSignatureException e) {
       logger.log(Level.SEVERE, "Failed to create HMAC signature", e);
     }
+    
+    return false;
   }
 
   private TransactionProperty createProperty(String key, String value) {

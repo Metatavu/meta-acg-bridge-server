@@ -2,6 +2,8 @@ package fi.metatavu.acgbridge.server.persistence.model;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.PrimaryKeyJoinColumn;
 import javax.validation.constraints.NotNull;
 
@@ -38,6 +40,11 @@ public class MobilePayTransaction extends Transaction {
   private String customerToken;
 
   private String customerReceiptToken;
+ 
+  @Enumerated (EnumType.STRING)
+  @NotNull
+  @Column(nullable = false)
+  private MobilePayTransactionType mobilePayTransactionType;
   
   public String getMerchantId() {
     return merchantId;
@@ -95,4 +102,12 @@ public class MobilePayTransaction extends Transaction {
     this.customerReceiptToken = customerReceiptToken;
   }
 
+  public MobilePayTransactionType getMobilePayTransactionType() {
+    return mobilePayTransactionType;
+  }
+  
+  public void setMobilePayTransactionType(MobilePayTransactionType mobilePayTransactionType) {
+    this.mobilePayTransactionType = mobilePayTransactionType;
+  }
+  
 }
