@@ -17,6 +17,8 @@ import fi.metatavu.mobilepay.model.GetUniquePoSIdRequest;
 import fi.metatavu.mobilepay.model.GetUniquePoSIdResponse;
 import fi.metatavu.mobilepay.model.PaymentCancelRequest;
 import fi.metatavu.mobilepay.model.PaymentCancelResponse;
+import fi.metatavu.mobilepay.model.PaymentRefundRequest;
+import fi.metatavu.mobilepay.model.PaymentRefundResponse;
 import fi.metatavu.mobilepay.model.PaymentStartRequest;
 import fi.metatavu.mobilepay.model.PaymentStartResponse;
 import fi.metatavu.mobilepay.model.PaymentStatusRequest;
@@ -25,6 +27,14 @@ import fi.metatavu.mobilepay.model.ReadPoSAssignPoSUnitIdRequest;
 import fi.metatavu.mobilepay.model.ReadPoSAssignPoSUnitIdResponse;
 import fi.metatavu.mobilepay.model.RegisterPoSRequest;
 import fi.metatavu.mobilepay.model.RegisterPoSResponse;
+import fi.metatavu.mobilepay.model.ReservationCancelRequest;
+import fi.metatavu.mobilepay.model.ReservationCancelResponse;
+import fi.metatavu.mobilepay.model.ReservationCaptureRequest;
+import fi.metatavu.mobilepay.model.ReservationCaptureResponse;
+import fi.metatavu.mobilepay.model.ReservationStartRequest;
+import fi.metatavu.mobilepay.model.ReservationStartResponse;
+import fi.metatavu.mobilepay.model.ReservationStatusRequest;
+import fi.metatavu.mobilepay.model.ReservationStatusResponse;
 import fi.metatavu.mobilepay.model.UnAssignPoSUnitIdToPoSResponse;
 import fi.metatavu.mobilepay.model.UnAssignPoSUnitIdToPosRequest;
 import fi.metatavu.mobilepay.model.UnRegisterPoSRequest;
@@ -110,6 +120,33 @@ public class MobilePayApi {
       throw new MobilePayApiException(e);
     }
   }
+  
+  /**
+   * Refund part of or the entire amount of the payment.
+   * 
+   * A payment refund can be made days/weeks after the original payment has been made. 
+   * 
+   * "PaymentRefund" is a stand-alone method and must be called directly. The response code from this call will indicate success or failure.
+   * 
+   * @param apiKey apiKey
+   * @param merchantId merchantId
+   * @param locationId locationId
+   * @param posId posId
+   * @param orderId orderId
+   * @param amount amount
+   * @param bulkRef bulkRef
+   * @return Payment refund response
+   * @throws MobilePayApiException
+   */
+  public MobilePayResponse<PaymentRefundResponse> paymentRefund(String apiKey, String merchantId, String locationId, String posId, String orderId, Double amount, String bulkRef) throws MobilePayApiException {
+    try {
+      String amountStr = formatAmount(amount);
+      PaymentRefundRequest statusRequest = new PaymentRefundRequest(merchantId, locationId, posId, orderId, amountStr, bulkRef);
+      return executeRequest("PaymentRefund", apiKey, statusRequest, PaymentRefundResponse.class);
+    } catch (MobilePayHmacException | IOException e) {
+      throw new MobilePayApiException(e);
+    }
+  }
 
   public MobilePayResponse<GetUniquePoSIdResponse> getUniquePoSId(String apiKey, String merchantId) throws MobilePayApiException {
     try {
@@ -160,6 +197,106 @@ public class MobilePayApi {
     try {
       ReadPoSAssignPoSUnitIdRequest request = new ReadPoSAssignPoSUnitIdRequest(merchantId, locationId, posId);
       return executeRequest("ReadPoSAssignPoSUnitId", apiKey, request, ReadPoSAssignPoSUnitIdResponse.class);
+    } catch (MobilePayHmacException | IOException e) {
+      throw new MobilePayApiException(e);
+    }
+  }
+
+  /**
+   * This method is called when the Point of Sale (cash register / terminal) wishes to start a reservation 3.
+   *  
+   * ReservationStart is only possible if no active MobilePay reservation entity exists for current PoS.
+   * 
+   * A ReservationStart will delete an earlier finished reservation entity - if it is in status 'Done', 'Cancel' or 'Error'.
+   * 
+   *  It is expected that the PoS system keeps track of reservations internally in order to be able to capture them late
+   * 
+   * @param apiKey apiKey
+   * @param merchantId merchantId
+   * @param locationId locationId
+   * @param posId posId 
+   * @param orderId orderId
+   * @param amount amount
+   * @param bulkRef bulkRef
+   * @param captureType captureType
+   * @return Reservation start response
+   * @throws MobilePayApiException
+   */
+  public MobilePayResponse<ReservationStartResponse> reservationStart(String apiKey, String merchantId, String locationId, String posId, String orderId, Double amount,
+      String bulkRef, String captureType) throws MobilePayApiException {
+    try {
+      String amountStr = formatAmount(amount);
+      ReservationStartRequest request = new ReservationStartRequest(merchantId, locationId, posId, orderId, amountStr, bulkRef, captureType);
+      return executeRequest("ReservationStart", apiKey, request, ReservationStartResponse.class);
+    } catch (MobilePayHmacException | IOException e) {
+      throw new MobilePayApiException(e);
+    }
+  }
+  
+  /**
+   * Get a Reservation status for current PoS ID.
+   * 
+   * Used for polling for status. Polling has to be done every 1 second until the ReservationStatus is 100 ('Done') or if the reservation request has been rejected (ReservationStatus 40 ('Cancel') or 50 ('Error')).
+   * 
+   * @param apiKey apiKey
+   * @param merchantId merchantId
+   * @param locationId locationId
+   * @param posId posId
+   * @param orderId orderId
+   * @return Reservation status response
+   * @throws MobilePayApiException
+   */
+  public MobilePayResponse<ReservationStatusResponse> getReservationStatus(String apiKey, String merchantId, String locationId, String posId, String orderId) throws MobilePayApiException {
+    try {
+      ReservationStatusRequest request = new ReservationStatusRequest(merchantId, locationId, posId, orderId);
+      return executeRequest("GetReservationStatus", apiKey, request, ReservationStatusResponse.class);
+    } catch (MobilePayHmacException | IOException e) {
+      throw new MobilePayApiException(e);
+    }
+  }
+  
+  /**
+   * Cancel Reservation request for current PoS ID. Cancel is principal possible as long as earlier request for reservation hasn't been finalized.
+   * 
+   * A ReservationCancel will delete current reservation entity active or not unless earlier finished reservation ended in status Done (status code 100) which will remains until a new reservation starts.
+   * 
+   * @param apiKey apiKey
+   * @param merchantId merchantId
+   * @param locationId locationId
+   * @param posId posId
+   * @param orderId orderId
+   * @return Reservation cancel response
+   * @throws MobilePayApiException
+   */
+  public MobilePayResponse<ReservationCancelResponse> reservationCancel(String apiKey, String merchantId, String locationId, String posId, String orderId) throws MobilePayApiException {
+    try {
+      ReservationCancelRequest request = new ReservationCancelRequest(merchantId, locationId, posId, orderId);
+      return executeRequest("ReservationCancel", apiKey, request, ReservationCancelResponse.class);
+    } catch (MobilePayHmacException | IOException e) {
+      throw new MobilePayApiException(e);
+    }
+  }
+  
+  /**
+   * This method is called when the Point of Sale (cash register / terminal) wishes to Capture the Reservation ReservationCapture is only possible when a Reservation exists with the provided order ID.
+   * 
+   * Reservations made as Full Capture reservations should always be captured with 0.00 in amount, and Partial Capture with the amount to capture
+   * 
+   * @param apiKey apiKey
+   * @param merchantId merchantId
+   * @param locationId locationId
+   * @param posId posId
+   * @param orderId orderId
+   * @param amount amount
+   * @param bulkRef bulkRef
+   * @return Reservation capture response
+   * @throws MobilePayApiException
+   */
+  public MobilePayResponse<ReservationCaptureResponse> reservationCapture(String apiKey, String merchantId, String locationId, String posId, String orderId, String amount,
+      String bulkRef) throws MobilePayApiException {
+    try {
+      ReservationCaptureRequest request = new ReservationCaptureRequest(merchantId, locationId, posId, orderId, amount, bulkRef);
+      return executeRequest("ReservationCapture", apiKey, request, ReservationCaptureResponse.class);
     } catch (MobilePayHmacException | IOException e) {
       throw new MobilePayApiException(e);
     }
