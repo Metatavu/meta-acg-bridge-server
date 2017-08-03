@@ -10,6 +10,7 @@ import fi.metatavu.acgbridge.server.persistence.dao.MobilePayTransactionDAO;
 import fi.metatavu.acgbridge.server.persistence.dao.TransactionDAO;
 import fi.metatavu.acgbridge.server.persistence.model.Client;
 import fi.metatavu.acgbridge.server.persistence.model.MobilePayTransaction;
+import fi.metatavu.acgbridge.server.persistence.model.MobilePayTransactionType;
 import fi.metatavu.acgbridge.server.persistence.model.Transaction;
 import fi.metatavu.acgbridge.server.persistence.model.TransactionStatus;
 
@@ -27,8 +28,8 @@ public class TransactionController {
   @Inject
   private MobilePayTransactionDAO mobilePayTransactionDAO;
   
-  public Transaction createMobilePayTransaction(Client client, String merchantId, String orderId, String machineId, String serverId, Double amount, String failureUrl, String successUrl, String posId, String locationId, String bulkRef, String responsibleNode) {
-    return mobilePayTransactionDAO.create(client, merchantId, TransactionStatus.PENDING, "mobilepay", orderId, machineId, serverId, amount, failureUrl, successUrl, posId, locationId, bulkRef, null, null, null, responsibleNode, new Date());
+  public Transaction createMobilePayTransaction(Client client, MobilePayTransactionType mobilePayTransactionType, String merchantId, String orderId, String machineId, String serverId, Double amount, String failureUrl, String successUrl, String posId, String locationId, String bulkRef, String responsibleNode) {
+    return mobilePayTransactionDAO.create(client, mobilePayTransactionType, merchantId, TransactionStatus.PENDING, "mobilepay", orderId, machineId, serverId, amount, failureUrl, successUrl, posId, locationId, bulkRef, null, null, null, responsibleNode, new Date());
   }
 
   public List<MobilePayTransaction> listPendingMobilePayTransactions(String responsibleNode) {
@@ -41,6 +42,10 @@ public class TransactionController {
 
   public List<MobilePayTransaction> listPendingMobilePayTransactionsByOrderId(String orderId) {
     return mobilePayTransactionDAO.listByStatusAndOrderId(TransactionStatus.PENDING, orderId);
+  }
+
+  public Transaction findTransactionById(Long id) {
+    return transactionDAO.findById(id);
   }
   
   public Transaction updateTransactionStatus(Transaction transaction, TransactionStatus status) {

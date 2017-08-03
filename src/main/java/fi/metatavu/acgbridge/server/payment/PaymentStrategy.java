@@ -11,8 +11,8 @@ public interface PaymentStrategy {
   public Transaction createTransaction(Client client, fi.metatavu.acgbridge.server.rest.model.Transaction payload);
 
   public boolean initatePayment(Transaction transaction);
-  
-  public boolean cancelActiveTransactionsByOrderId(String orderId);
+
+  public Transaction updateTransactionStatus(Transaction transaction, TransactionStatus transactionStatus);
 
   public Transaction cancelTransaction(Transaction transaction, TransactionStatus cancelStatus);
   

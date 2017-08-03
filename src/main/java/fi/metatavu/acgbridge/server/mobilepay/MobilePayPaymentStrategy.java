@@ -11,10 +11,13 @@ import javax.enterprise.concurrent.ManagedScheduledExecutorService;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+import org.apache.commons.lang3.EnumUtils;
+
 import fi.metatavu.acgbridge.server.cluster.ClusterController;
 import fi.metatavu.acgbridge.server.payment.PaymentStrategy;
 import fi.metatavu.acgbridge.server.persistence.model.Client;
 import fi.metatavu.acgbridge.server.persistence.model.MobilePayTransaction;
+import fi.metatavu.acgbridge.server.persistence.model.MobilePayTransactionType;
 import fi.metatavu.acgbridge.server.persistence.model.Transaction;
 import fi.metatavu.acgbridge.server.persistence.model.TransactionStatus;
 import fi.metatavu.acgbridge.server.rest.model.TransactionProperty;
@@ -23,6 +26,7 @@ import fi.metatavu.mobilepay.MobilePayApi;
 import fi.metatavu.mobilepay.MobilePayApiException;
 import fi.metatavu.mobilepay.client.MobilePayResponse;
 import fi.metatavu.mobilepay.model.PaymentStartResponse;
+import fi.metatavu.mobilepay.model.ReservationStartResponse;
 
 @ApplicationScoped
 public class MobilePayPaymentStrategy implements PaymentStrategy {
@@ -68,6 +72,8 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
     String locationId = properties.get("locationId");
     String bulkRef = properties.containsKey("bulkRef") ? properties.get("bulkRef") : "";
     String name = properties.containsKey("name") ? properties.get("name") : "";
+    String transactionTypeParam = properties.get("transactionType");
+    MobilePayTransactionType transactionType = transactionTypeParam != null ? EnumUtils.getEnum(MobilePayTransactionType.class, transactionTypeParam) : MobilePayTransactionType.RESERVE_CAPTURE;
     
     String posId;
     try {
@@ -81,13 +87,112 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
       return null;
     }
     
-    return transactionController.createMobilePayTransaction(client, merchantId, orderId, machineId, serverId, amount, failureUrl, successUrl, posId, locationId, bulkRef, clusterController.getLocalNodeName());
+    return transactionController.createMobilePayTransaction(client, transactionType, merchantId, orderId, machineId, serverId, amount, failureUrl, successUrl, posId, locationId, bulkRef, clusterController.getLocalNodeName());
   }
   
   @Override
   public boolean initatePayment(Transaction transaction) {
     MobilePayTransaction mobilePayTransaction = (MobilePayTransaction) transaction;
     
+    switch (mobilePayTransaction.getMobilePayTransactionType()) {
+      case DIRECT_PAYMENT:
+        return initiateDirectPayment(mobilePayTransaction);
+      case RESERVE_CAPTURE:
+        return initiateReserveCapture(mobilePayTransaction);
+      default:
+    }
+    
+    logger.log(Level.SEVERE, () -> String.format("Don't know how to handle transaction type %s", mobilePayTransaction.getMobilePayTransactionType()));
+    
+    return false;
+  }
+  
+  @Override
+  public Transaction cancelTransaction(Transaction transaction, TransactionStatus cancelStatus) {
+    if (transaction instanceof MobilePayTransaction) {
+      MobilePayTransaction mobilePayTransaction = (MobilePayTransaction) transaction;
+      try {
+        switch (mobilePayTransaction.getMobilePayTransactionType()) {
+          case DIRECT_PAYMENT:
+            cancelDirectPayment(mobilePayTransaction);
+          break;
+          case RESERVE_CAPTURE:
+            cancelReserveCapture(mobilePayTransaction);
+          break;
+          default:
+            logger.log(Level.SEVERE, () -> String.format("Don't know how to cancel transaction type %s", mobilePayTransaction.getMobilePayTransactionType()));
+          break;
+        }
+        
+        transactionController.updateTransactionStatus(mobilePayTransaction, cancelStatus);
+        logger.log(Level.INFO, () -> String.format("Cancelled transaction %d with status %s", transaction.getId(), transaction.getStatus()));        
+      } catch (MobilePayApiException e) {
+        logger.log(Level.SEVERE, String.format("Error occurred while cancelling transaction %d", transaction.getId()), e);
+      }
+      
+    } else {
+      logger.log(Level.SEVERE, () -> String.format("Tried to cancelling non-mobilepay transaction %d", transaction.getId()));
+    }
+    
+    return transaction;
+  }
+  
+  @Override
+  public Transaction updateTransactionStatus(Transaction transaction, TransactionStatus transactionStatus) {
+    if (transaction instanceof MobilePayTransaction) {
+      MobilePayTransaction mobilePayTransaction = (MobilePayTransaction) transaction;
+      
+      switch (transactionStatus) {
+        case CANCELLED:
+          return cancelTransaction(transaction, transactionStatus);
+        case SUCCESS:
+          return updateTransactionStatusSuccess(mobilePayTransaction);
+        default:
+          logger.log(Level.SEVERE, () -> String.format("Provided invalid status %s when updating transaction %d", transactionStatus, transaction.getId()));
+          return null;
+        
+      }
+    } else {
+      logger.log(Level.SEVERE, () -> String.format("Tried to update non-mobilepay transaction %d", transaction.getId()));
+    }
+    
+    return null;
+  }
+
+  private Transaction updateTransactionStatusSuccess(MobilePayTransaction mobilePayTransaction) {
+    switch (mobilePayTransaction.getMobilePayTransactionType()) {
+      case DIRECT_PAYMENT:
+        // Payment is already captured when using direct payments
+        transactionController.updateTransactionStatus(mobilePayTransaction, TransactionStatus.SUCCESS);
+        logger.log(Level.INFO, () -> String.format("Direct payment transaction %d succesfull", mobilePayTransaction.getId()));
+        return mobilePayTransaction;
+      case RESERVE_CAPTURE:
+        try {
+          captureReserveCapture(mobilePayTransaction);
+          transactionController.updateTransactionStatus(mobilePayTransaction, TransactionStatus.SUCCESS);
+          logger.log(Level.INFO, () -> String.format("Captured payment transaction %d succesfully", mobilePayTransaction.getId()));
+          return mobilePayTransaction;
+        } catch (MobilePayApiException e) {
+          logger.log(Level.SEVERE, String.format("Error occurred while capturing transaction %d", mobilePayTransaction.getId()), e);
+        }
+      break;
+      default:
+        logger.log(Level.SEVERE, () -> String.format("Don't know how to cancel transaction type %s", mobilePayTransaction.getMobilePayTransactionType()));
+      break;
+    }
+    
+    return null;
+  }
+
+  @Override
+  public void cancelActiveTransactions(String machineId) {
+    List<MobilePayTransaction> pendingTransactions = transactionController.listPendingMobilePayTransactionsByMachineId(machineId);
+    for (MobilePayTransaction pendingTransaction : pendingTransactions) {
+      cancelTransaction(pendingTransaction, TransactionStatus.CANCELLED);
+    }
+  }
+
+  private boolean initiateDirectPayment(MobilePayTransaction mobilePayTransaction) {
     String orderId = mobilePayTransaction.getOrderId();
     Double amount = mobilePayTransaction.getAmount();
     String merchantId = mobilePayTransaction.getMerchantId();
@@ -108,37 +213,67 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
     return false;
   }
   
-  @Override
-  public Transaction cancelTransaction(Transaction transaction, TransactionStatus cancelStatus) {
-    if (transaction instanceof MobilePayTransaction) {
-      MobilePayTransaction mobilePayTransaction = (MobilePayTransaction) transaction;
-      String posId = mobilePayTransaction.getPosId();
-      String locationId = mobilePayTransaction.getLocationId();
-      String merchantId = mobilePayTransaction.getMerchantId();
-      String apiKey = getApiKey(merchantId);
-      
-      try {
-        mobilePayApi.paymentCancel(apiKey, merchantId, locationId, posId);
-        transactionController.updateTransactionStatus(mobilePayTransaction, cancelStatus);
-        logger.log(Level.INFO, () -> String.format("Cancelled transaction %d with status %s", transaction.getId(), transaction.getStatus()));        
-      } catch (MobilePayApiException e) {
-        logger.log(Level.SEVERE, String.format("Error occurred while cancelling transaction %d", transaction.getId()), e);
+  private boolean initiateReserveCapture(MobilePayTransaction mobilePayTransaction) {
+    String orderId = mobilePayTransaction.getOrderId();
+    Double amount = mobilePayTransaction.getAmount();
+    String merchantId = mobilePayTransaction.getMerchantId();
+    String apiKey = getApiKey(merchantId);
+    String posId = mobilePayTransaction.getPosId();
+    String locationId = mobilePayTransaction.getLocationId();
+    String bulkRef = mobilePayTransaction.getBulkRef();
+    String captureType = "Full";
+    
+    try {
+      MobilePayResponse<ReservationStartResponse> reservationStartResponse = mobilePayApi.reservationStart(apiKey, merchantId, locationId, posId, orderId, amount, bulkRef, captureType);
+      if (!reservationStartResponse.isOk()) {
+        logger.log(Level.SEVERE, () -> String.format("Failed to start reservation [%d]: %s", reservationStartResponse.getStatus(), reservationStartResponse.getMessage()));
+        return false;
+      } else {
+        return true;
       }
-      
-    } else {
-      logger.log(Level.SEVERE, () -> String.format("Tried to cancelling non-mobilepay transaction %d", transaction.getId()));
+    } catch (MobilePayApiException e) {
+      logger.log(Level.SEVERE, "Error occurred while initiating mobile pay payment", e);
     }
     
-    return transaction;
+    return false;
   }
-  
-  @Override
-  public void cancelActiveTransactions(String machineId) {
-    List<MobilePayTransaction> pendingTransactions = transactionController.listPendingMobilePayTransactionsByMachineId(machineId);
-    for (MobilePayTransaction pendingTransaction : pendingTransactions) {
-      cancelTransaction(pendingTransaction, TransactionStatus.CANCELLED);
+
+  private void cancelDirectPayment(MobilePayTransaction mobilePayTransaction) throws MobilePayApiException {
+    String posId = mobilePayTransaction.getPosId();
+    String locationId = mobilePayTransaction.getLocationId();
+    String merchantId = mobilePayTransaction.getMerchantId();
+    String apiKey = getApiKey(merchantId);
+    String orderId = mobilePayTransaction.getOrderId();
+    String bulkRef = mobilePayTransaction.getBulkRef();
+    
+    if (mobilePayTransaction.getStatus() == TransactionStatus.SUCCESS) {
+      mobilePayApi.paymentRefund(apiKey, merchantId, locationId, posId, orderId, 0d, bulkRef);
+    } else {
+      mobilePayApi.paymentCancel(apiKey, merchantId, locationId, posId);
     }
   }
+
+  private void cancelReserveCapture(MobilePayTransaction mobilePayTransaction) throws MobilePayApiException {
+    String posId = mobilePayTransaction.getPosId();
+    String locationId = mobilePayTransaction.getLocationId();
+    String merchantId = mobilePayTransaction.getMerchantId();
+    String orderId = mobilePayTransaction.getOrderId();
+    String apiKey = getApiKey(merchantId);
+    
+    mobilePayApi.reservationCancel(apiKey, merchantId, locationId, posId, orderId);
+  }
+  
+  private void captureReserveCapture(MobilePayTransaction mobilePayTransaction) throws MobilePayApiException {
+    String posId = mobilePayTransaction.getPosId();
+    String locationId = mobilePayTransaction.getLocationId();
+    String merchantId = mobilePayTransaction.getMerchantId();
+    String orderId = mobilePayTransaction.getOrderId();
+    String apiKey = getApiKey(merchantId);
+    String bulkRef = mobilePayTransaction.getBulkRef();
+    
+    mobilePayApi.reservationCapture(apiKey, merchantId, locationId, posId, orderId, 0d, bulkRef);
+  }
+
   
   private Map<String, String> getProperties(List<TransactionProperty> transactionProperties) {
     Map<String, String> result = new HashMap<>(transactionProperties.size());
@@ -148,20 +283,6 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
     }
     
     return result;
-  }
-
-  @Override
-  public boolean cancelActiveTransactionsByOrderId(String orderId) {
-    List<MobilePayTransaction> pendingTransactions = transactionController.listPendingMobilePayTransactionsByOrderId(orderId);
-    if (pendingTransactions.isEmpty()) {
-      return false;
-    }
-    
-    for (MobilePayTransaction pendingTransaction : pendingTransactions) {
-      cancelTransaction(pendingTransaction, TransactionStatus.CANCELLED);
-    }
-    
-    return true;
   }
   
   private String getApiKey(String merchantId) {

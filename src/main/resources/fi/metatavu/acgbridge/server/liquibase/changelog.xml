@@ -147,4 +147,14 @@
     <sql>DELETE FROM SystemSetting WHERE settingKey in ('mobilepay.merchantid', 'mobilepay.apiKey')</sql>
   </changeSet>
   
+  <changeSet id="MobilePayTransactionTransactionType" author="antti.leppa">
+    <addColumn tableName="MobilePayTransaction">
+      <column name="mobilePayTransactionType" type="varchar(255)"/>
+    </addColumn>
+    
+    <sql>UPDATE MobilePayTransaction set mobilePayTransactionType = 'DIRECT_PAYMENT'</sql>
+    
+    <addNotNullConstraint tableName="MobilePayTransaction" columnName="mobilePayTransactionType" columnDataType="varchar(255)"/>
+  </changeSet>
+  
 </databaseChangeLog>
