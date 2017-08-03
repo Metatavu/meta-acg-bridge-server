@@ -271,7 +271,7 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
     String apiKey = getApiKey(merchantId);
     String bulkRef = mobilePayTransaction.getBulkRef();
     
-    mobilePayApi.reservationCapture(apiKey, merchantId, locationId, posId, orderId, "0.00", bulkRef);
+    mobilePayApi.reservationCapture(apiKey, merchantId, locationId, posId, orderId, 0d, bulkRef);
   }
 
   

@@ -292,10 +292,11 @@ public class MobilePayApi {
    * @return Reservation capture response
    * @throws MobilePayApiException
    */
-  public MobilePayResponse<ReservationCaptureResponse> reservationCapture(String apiKey, String merchantId, String locationId, String posId, String orderId, String amount,
+  public MobilePayResponse<ReservationCaptureResponse> reservationCapture(String apiKey, String merchantId, String locationId, String posId, String orderId, Double amount,
       String bulkRef) throws MobilePayApiException {
     try {
-      ReservationCaptureRequest request = new ReservationCaptureRequest(merchantId, locationId, posId, orderId, amount, bulkRef);
+      String amountStr = formatAmount(amount);
+      ReservationCaptureRequest request = new ReservationCaptureRequest(merchantId, locationId, posId, orderId, amountStr, bulkRef);
       return executeRequest("ReservationCapture", apiKey, request, ReservationCaptureResponse.class);
     } catch (MobilePayHmacException | IOException e) {
       throw new MobilePayApiException(e);
