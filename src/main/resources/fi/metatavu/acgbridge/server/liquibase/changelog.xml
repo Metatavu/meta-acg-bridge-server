@@ -134,4 +134,27 @@
     <addNotNullConstraint tableName="Transaction" columnName="created" columnDataType="datetime(6)"/>
   </changeSet>
   
+  <changeSet id="MobilePayTransactionMerchantId" author="antti.leppa">
+    <addColumn tableName="MobilePayTransaction">
+      <column name="merchantId" type="varchar(255)"/>
+    </addColumn>
+    
+    <sql>UPDATE MobilePayTransaction set merchantId = (SELECT value FROM SystemSetting WHERE settingKey = 'mobilepay.merchantid')</sql>
+    
+    <addNotNullConstraint tableName="MobilePayTransaction" columnName="merchantId" columnDataType="varchar(255)"/>
+    
+    <sql>INSERT INTO SystemSetting (settingKey, value) SELECT concat('mobilepay.', value, '.apikey') as k, (SELECT value FROM SystemSetting WHERE settingKey = 'mobilepay.apiKey') as v FROM SystemSetting WHERE settingKey = 'mobilepay.merchantid'</sql>
+    <sql>DELETE FROM SystemSetting WHERE settingKey in ('mobilepay.merchantid', 'mobilepay.apiKey')</sql>
+  </changeSet>
+  
+  <changeSet id="MobilePayTransactionTransactionType" author="antti.leppa">
+    <addColumn tableName="MobilePayTransaction">
+      <column name="mobilePayTransactionType" type="varchar(255)"/>
+    </addColumn>
+    
+    <sql>UPDATE MobilePayTransaction set mobilePayTransactionType = 'DIRECT_PAYMENT'</sql>
+    
+    <addNotNullConstraint tableName="MobilePayTransaction" columnName="mobilePayTransactionType" columnDataType="varchar(255)"/>
+  </changeSet>
+  
 </databaseChangeLog>
