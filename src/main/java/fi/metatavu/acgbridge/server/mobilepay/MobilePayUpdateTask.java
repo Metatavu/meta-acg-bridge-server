@@ -151,9 +151,6 @@ public class MobilePayUpdateTask implements Runnable {
         case 50: // Error
           handleReserveCaptureError(transaction);
           break;
-        case 80: // ReservationAccepted
-          handleReserveCaptureAccepted(transaction);
-          break;
         case 100: // Done
           handleReserveCaptureDone(transaction);
           break;
@@ -183,13 +180,6 @@ public class MobilePayUpdateTask implements Runnable {
     }
   }
 
-  private void handleReserveCaptureAccepted(MobilePayTransaction transaction) {
-    // Reservation accepted, fire webhook and mark the transaction as pending (should already be)
-    if (fireWebhook(transaction, true)) {
-      transactionController.updateTransactionStatus(transaction, TransactionStatus.PENDING);
-    }
-  }
-
   private void handleReserveCaptureError(MobilePayTransaction transaction) {
     // Error occurred in MobilePay servers, cancelling transaction as erroneous
     if (fireWebhook(transaction, false)) {
@@ -205,8 +195,10 @@ public class MobilePayUpdateTask implements Runnable {
   }
 
   private void handleReserveCaptureDone(MobilePayTransaction transaction) {
-    // Reservation has been captured, so we just close the transaction as success
-    transactionController.updateTransactionStatus(transaction, TransactionStatus.SUCCESS);
+    // Reservation accepted, fire webhook and mark the transaction as waiting for capture
+    if (fireWebhook(transaction, true)) {
+      transactionController.updateTransactionStatus(transaction, TransactionStatus.WAITING_CAPTURE);
+    }
   }
 
   private boolean fireWebhook(MobilePayTransaction transaction, boolean success) {
