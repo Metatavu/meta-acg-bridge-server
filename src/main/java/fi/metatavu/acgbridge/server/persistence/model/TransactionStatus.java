@@ -12,6 +12,8 @@ public enum TransactionStatus {
   
   SUCCESS,
   
+  WAITING_CAPTURE,
+  
   TIMED_OUT
   
 }

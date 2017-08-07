@@ -54,9 +54,17 @@ public class TransactionTimeoutUpdateTask implements Runnable {
 
   private void updateTimedOutTransactions() {
     Date fiveMinutesAgo = Date.from(OffsetDateTime.now().minusMinutes(5).toInstant());
+    
     List<Transaction> timedOutTransactions = transactionController.listPendingTransactionsBefore(fiveMinutesAgo);
     for (Transaction timedOutTransaction : timedOutTransactions) {
       paymentController.cancelTransaction(timedOutTransaction, TransactionStatus.TIMED_OUT);
+      logger.info(() -> String.format("Timed out pending transaction %d", timedOutTransaction.getId()));
+    }
+    
+    List<Transaction> waitingCaptureTransactions = transactionController.listWaitingCaptureTransactionsBefore(fiveMinutesAgo);
+    for (Transaction waitingCaptureTransaction : waitingCaptureTransactions) {
+      paymentController.cancelTransaction(waitingCaptureTransaction, TransactionStatus.TIMED_OUT);
+      logger.info(() -> String.format("Timed out transaction waiting for capture %d", waitingCaptureTransaction.getId()));
     }
   }
 
