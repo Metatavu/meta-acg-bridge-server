@@ -60,6 +60,10 @@ public class TransactionController {
     return transactionDAO.listByStatusAndCreatedBefore(TransactionStatus.PENDING, before);
   }
   
+  public List<Transaction> listWaitingCaptureTransactionsBefore(Date before) {
+    return transactionDAO.listByStatusAndCreatedBefore(TransactionStatus.WAITING_CAPTURE, before);
+  }
+  
   public Transaction updateTransactionResponsibleNode(Transaction transaction, String responsibleNode) {
     return transactionDAO.updateResponsibleNode(transaction, responsibleNode);
   }

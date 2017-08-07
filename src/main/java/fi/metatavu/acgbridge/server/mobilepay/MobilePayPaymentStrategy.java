@@ -259,7 +259,6 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
     String merchantId = mobilePayTransaction.getMerchantId();
     String orderId = mobilePayTransaction.getOrderId();
     String apiKey = getApiKey(merchantId);
-    
     mobilePayApi.reservationCancel(apiKey, merchantId, locationId, posId, orderId);
   }
   
