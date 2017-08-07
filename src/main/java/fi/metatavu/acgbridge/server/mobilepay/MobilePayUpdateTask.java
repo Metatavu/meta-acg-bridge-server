@@ -109,6 +109,9 @@ public class MobilePayUpdateTask implements Runnable {
     MobilePayResponse<PaymentStatusResponse> response = mobilePayApi.paymentStatus(apiKey, merchantId, transaction.getLocationId(), transaction.getPosId(), transaction.getOrderId());
     if (response.isOk()) {
       PaymentStatusResponse paymentStatus = response.getResponse();
+      
+      logger.log(Level.SEVERE, () -> String.format("MobilePay responded with %d for payment %d", paymentStatus.getPaymentStatus(), transaction.getId()));
+      
       switch (paymentStatus.getPaymentStatus()) {
         case 40: // Cancel
           handleDirectPaymentCancel(transaction);
@@ -120,7 +123,6 @@ public class MobilePayUpdateTask implements Runnable {
           handleDirectPaymentDone(transaction);
         break;  
         default:
-          logger.log(Level.SEVERE, () -> String.format("MobilePay responded with %d for payment %d", paymentStatus.getPaymentStatus(), transaction.getId()));
         break;
       }
     } else {
@@ -140,6 +142,8 @@ public class MobilePayUpdateTask implements Runnable {
       ReservationStatusResponse reservationStatusResponse = mobilePayResponse.getResponse();
       Integer reservationStatus = reservationStatusResponse.getReservationStatus();
       
+      logger.log(Level.SEVERE, () -> String.format("MobilePay responded with %d for reservation %d", reservationStatus, transaction.getId()));
+      
       switch (reservationStatus) {
         case 40: // Cancel
           handleReserveCaptureCancel(transaction);
@@ -154,7 +158,6 @@ public class MobilePayUpdateTask implements Runnable {
           handleReserveCaptureDone(transaction);
           break;
         default:
-          logger.log(Level.SEVERE, () -> String.format("MobilePay responded with %d for reservation %d", reservationStatus, transaction.getId()));
         break;
       }
     } else {
