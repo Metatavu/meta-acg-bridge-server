@@ -1,6 +1,8 @@
 package fi.metatavu.acgbridge.server.mobilepay;
 
 import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -15,6 +17,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.ssl.SSLContexts;
 import org.apache.http.util.EntityUtils;
 
 import fi.metatavu.mobilepay.io.IOHandler;
@@ -28,12 +31,24 @@ public class MobilePayCommonsIOHandler implements IOHandler {
 
   @Override
   public IOHandlerResult doPost(String url, String data, String authorization) throws IOException {
-    CloseableHttpClient httpClient = HttpClients.createDefault();
     try {
-      return executePostRequest(httpClient, url, data, authorization);
-    } finally {
-      closeClient(httpClient);
+      CloseableHttpClient httpClient = createClient();
+      try {
+        return executePostRequest(httpClient, url, data, authorization);
+      } finally {
+        closeClient(httpClient);
+      }
+    } catch (KeyManagementException | NoSuchAlgorithmException e) {
+      logger.log(Level.SEVERE, "Failed to create MobilePay io handler", e);
+      throw new IOException(e);
     }
+  }
+
+  private CloseableHttpClient createClient() throws KeyManagementException, NoSuchAlgorithmException {
+    // MobilePay uses deprecated TLSv1 certificates
+    return HttpClients.custom()
+      .setSSLContext(SSLContexts.custom().useProtocol("TLSv1").build())
+      .build();
   }
 
   private IOHandlerResult executePostRequest(CloseableHttpClient httpClient, String url, String data, String authorization) throws IOException {
