@@ -24,7 +24,7 @@ public class MobilePayUpdater {
   
   @PostConstruct
   public void postConstruct() {
-    startTimer(2000, 2000);
+    startTimer(1200, 1200);
   }
   
   private void startTimer(long warmup, long delay) {
