@@ -211,7 +211,6 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
         }
         
         logger.log(Level.SEVERE, () -> String.format("Failed to start payment [%d]: %s", paymentStartResponse.getStatus(), paymentStartResponse.getMessage()));
-        return false;
       } else {
         return true;
       }
@@ -220,6 +219,8 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
         logger.log(Level.SEVERE, ERROR_OCCURRED_WHILE_INITIATING_MOBILE_PAY_PAYMENT, e);
       }
     }
+    
+    transactionController.updateTransactionStatus(mobilePayTransaction, TransactionStatus.ERRORED);
     
     return false;
   }
@@ -243,13 +244,14 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
         }
         
         logger.log(Level.SEVERE, () -> String.format("Failed to start reservation [%d]: %s", reservationStartResponse.getStatus(), reservationStartResponse.getMessage()));
-        return false;
       } else {
         return true;
       }
     } catch (MobilePayApiException e) {
       logger.log(Level.SEVERE, ERROR_OCCURRED_WHILE_INITIATING_MOBILE_PAY_PAYMENT, e);
     }
+   
+    transactionController.updateTransactionStatus(mobilePayTransaction, TransactionStatus.ERRORED);
     
     return false;
   }
