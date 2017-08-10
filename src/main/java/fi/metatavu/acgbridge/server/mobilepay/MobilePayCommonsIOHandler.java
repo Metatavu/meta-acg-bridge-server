@@ -3,6 +3,7 @@ package fi.metatavu.acgbridge.server.mobilepay;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -12,7 +13,6 @@ import javax.inject.Inject;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
-import org.apache.http.client.HttpRequestRetryHandler;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -20,6 +20,7 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultHttpRequestRetryHandler;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.protocol.HttpContext;
 import org.apache.http.ssl.SSLContexts;
 import org.apache.http.util.EntityUtils;
 
@@ -29,6 +30,26 @@ import fi.metatavu.mobilepay.io.IOHandlerResult;
 @ApplicationScoped
 public class MobilePayCommonsIOHandler implements IOHandler {
   
+  private final class HttpRequestRetryHandler extends DefaultHttpRequestRetryHandler {
+    
+    public HttpRequestRetryHandler(int retryCount, boolean requestSentRetryEnabled) {
+      super(retryCount, requestSentRetryEnabled, Arrays.asList());
+    }
+
+    @Override
+    public boolean retryRequest(IOException exception, int executionCount, HttpContext context) {
+      boolean retryRequest = super.retryRequest(exception, executionCount, context);
+      
+      if (retryRequest) {
+        logger.info("Retrying request...");
+      } else {
+        logger.info("NOT Retrying request...");
+      }
+      
+      return retryRequest;
+    }
+  }
+
   @Inject
   private Logger logger;
 
@@ -49,9 +70,9 @@ public class MobilePayCommonsIOHandler implements IOHandler {
 
   private CloseableHttpClient createClient() throws KeyManagementException, NoSuchAlgorithmException {
     RequestConfig config = RequestConfig.custom()
-      .setConnectTimeout(4 * 1000)
-      .setConnectionRequestTimeout(4 * 1000)
-      .setSocketTimeout(4 * 1000).build();
+      .setConnectTimeout(3 * 1000)
+      .setConnectionRequestTimeout(3 * 1000)
+      .setSocketTimeout(3 * 1000).build();
     
     // MobilePay uses deprecated TLSv1 certificates
     return HttpClients.custom()
@@ -62,7 +83,7 @@ public class MobilePayCommonsIOHandler implements IOHandler {
   }
 
   private HttpRequestRetryHandler createRetryHandler() {
-    return new DefaultHttpRequestRetryHandler(20, true);
+    return new HttpRequestRetryHandler(20, true);
   }
 
   private IOHandlerResult executePostRequest(CloseableHttpClient httpClient, String url, String data, String authorization) throws IOException {
