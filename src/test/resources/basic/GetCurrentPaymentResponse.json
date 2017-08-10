@@ -1,0 +1,12 @@
+{
+  "PoSId":"a123456-b123-c123-d123-e12345678901",
+  "PoSUnitId": "100000000000001",
+  "PaymentStatus":100,
+  "OrderId":"123A124321",
+  "TransactionId":"BA12366351512",
+  "Amount":1023.43,
+  "CustomerId":"f123456-a123-b123-c123-d12345678901",
+  "CustomerToken": null,
+  "CustomerReceiptToken": null,
+  "LastestUpdate": "06-02-2017 09:30:39"
+}
