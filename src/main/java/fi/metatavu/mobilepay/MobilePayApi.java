@@ -13,6 +13,10 @@ import fi.metatavu.mobilepay.hmac.HmacBuilder;
 import fi.metatavu.mobilepay.hmac.MobilePayHmacException;
 import fi.metatavu.mobilepay.model.AssignPoSUnitIdToPosRequest;
 import fi.metatavu.mobilepay.model.AssignPoSUnitIdToPosResponse;
+import fi.metatavu.mobilepay.model.GetCurrentPaymentRequest;
+import fi.metatavu.mobilepay.model.GetCurrentPaymentResponse;
+import fi.metatavu.mobilepay.model.GetCurrentReservationRequest;
+import fi.metatavu.mobilepay.model.GetCurrentReservationResponse;
 import fi.metatavu.mobilepay.model.GetUniquePoSIdRequest;
 import fi.metatavu.mobilepay.model.GetUniquePoSIdResponse;
 import fi.metatavu.mobilepay.model.PaymentCancelRequest;
@@ -298,6 +302,44 @@ public class MobilePayApi {
       String amountStr = formatAmount(amount);
       ReservationCaptureRequest request = new ReservationCaptureRequest(merchantId, locationId, posId, orderId, amountStr, bulkRef);
       return executeRequest("ReservationCapture", apiKey, request, ReservationCaptureResponse.class);
+    } catch (MobilePayHmacException | IOException e) {
+      throw new MobilePayApiException(e);
+    }
+  }
+
+  /**
+   * Get the current payment transaction for the provided PoSId.
+   * 
+   * @param apiKey apiKey
+   * @param merchantId merchantId
+   * @param locationId locationId
+   * @param posId posId
+   * @return current payment transaction for the provided PoSId.
+   * @throws MobilePayApiException
+   */
+  public MobilePayResponse<GetCurrentPaymentResponse> getCurrentPayment(String apiKey, String merchantId, String locationId, String posId) throws MobilePayApiException {
+    try {
+      GetCurrentPaymentRequest request = new GetCurrentPaymentRequest(merchantId, locationId, posId);
+      return executeRequest("GetCurrentPayment", apiKey, request, GetCurrentPaymentResponse.class);
+    } catch (MobilePayHmacException | IOException e) {
+      throw new MobilePayApiException(e);
+    }
+  }
+
+  /**
+   * Get the current reservation transaction for the provided PoSId.
+   * 
+   * @param apiKey apiKey
+   * @param merchantId merchantId
+   * @param locationId locationId
+   * @param posId posId
+   * @return current reservation transaction for the provided PoSId.
+   * @throws MobilePayApiException
+   */
+  public MobilePayResponse<GetCurrentReservationResponse> getCurrentReservation(String apiKey, String merchantId, String locationId, String posId) throws MobilePayApiException {
+    try {
+      GetCurrentReservationRequest request = new GetCurrentReservationRequest(merchantId, locationId, posId);
+      return executeRequest("GetCurrentReservation", apiKey, request, GetCurrentReservationResponse.class);
     } catch (MobilePayHmacException | IOException e) {
       throw new MobilePayApiException(e);
     }

@@ -127,6 +127,9 @@ public class MobilePayUpdateTask implements Runnable {
       }
     } else {
       logger.log(Level.SEVERE, () -> String.format("Received [%d]: %s when checking payment status from MobilePay server", response.getStatus(), response.getMessage()));
+      if (response.getStatus() == 400) {
+        transactionController.updateTransactionStatus(transaction, TransactionStatus.ERRORED);
+      }
     }
   }
 
@@ -159,6 +162,9 @@ public class MobilePayUpdateTask implements Runnable {
       }
     } else {
       logger.log(Level.SEVERE, () -> String.format("Received [%d]: %s when checking reservation status from MobilePay server", mobilePayResponse.getStatus(), mobilePayResponse.getMessage()));
+      if (mobilePayResponse.getStatus() == 400) {
+        transactionController.updateTransactionStatus(transaction, TransactionStatus.ERRORED);
+      }
     }
   }
 

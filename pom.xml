@@ -68,6 +68,10 @@
     
     <liquibase.version>3.5.3</liquibase.version>
     
+    <!-- Testing -->
+    
+    <wiremock.version>2.7.1</wiremock.version>
+    
   </properties>
   
   <dependencyManagement>
@@ -306,6 +310,13 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    
+    <dependency>
+      <groupId>com.github.tomakehurst</groupId>
+      <artifactId>wiremock</artifactId>
+      <version>${wiremock.version}</version>
       <scope>test</scope>
     </dependency>
     
