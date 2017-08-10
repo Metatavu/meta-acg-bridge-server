@@ -1,6 +1,6 @@
 {
-  "PoSId":"a123456-b123-c123-d123-e12345678901",
-  "PoSUnitId": "100000000000001",
+  "PosId":"a123456-b123-c123-d123-e12345678901",
+  "PosUnitId": "100000000000001",
   "PaymentStatus":100,
   "OrderId":"123A124321",
   "TransactionId":"BA12366351512",
