@@ -25,6 +25,7 @@ import fi.metatavu.acgbridge.server.transactions.TransactionController;
 import fi.metatavu.mobilepay.MobilePayApi;
 import fi.metatavu.mobilepay.MobilePayApiException;
 import fi.metatavu.mobilepay.client.MobilePayResponse;
+import fi.metatavu.mobilepay.model.GetCurrentReservationResponse;
 import fi.metatavu.mobilepay.model.PaymentCancelResponse;
 import fi.metatavu.mobilepay.model.PaymentStartResponse;
 import fi.metatavu.mobilepay.model.ReservationCancelResponse;
@@ -167,13 +168,13 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
       case DIRECT_PAYMENT:
         // Payment is already captured when using direct payments
         transactionController.updateTransactionStatus(mobilePayTransaction, TransactionStatus.SUCCESS);
-        logger.log(Level.INFO, () -> String.format("Direct payment transaction %d succesfull", mobilePayTransaction.getId()));
+        logger.log(Level.INFO, () -> String.format("Direct payment transaction %d successful", mobilePayTransaction.getId()));
         return mobilePayTransaction;
       case RESERVE_CAPTURE:
         try {
           captureReserveCapture(mobilePayTransaction);
           transactionController.updateTransactionStatus(mobilePayTransaction, TransactionStatus.SUCCESS);
-          logger.log(Level.INFO, () -> String.format("Captured payment transaction %d succesfully", mobilePayTransaction.getId()));
+          logger.log(Level.INFO, () -> String.format("Captured payment transaction %d successfully", mobilePayTransaction.getId()));
           return mobilePayTransaction;
         } catch (MobilePayApiException e) {
           logger.log(Level.SEVERE, String.format("Error occurred while capturing transaction %d", mobilePayTransaction.getId()), e);
@@ -324,21 +325,23 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
   }
   
   private boolean cancelExistingReservation(MobilePayTransaction mobilePayTransaction) {
-    String orderId = mobilePayTransaction.getOrderId();
     String merchantId = mobilePayTransaction.getMerchantId();
     String apiKey = getApiKey(merchantId);
     String locationId = mobilePayTransaction.getLocationId();
     String posId = mobilePayTransaction.getPosId();
     
     try {
+      MobilePayResponse<GetCurrentReservationResponse> currentReservationResponse = mobilePayApi.getCurrentReservation(apiKey, merchantId, locationId, posId);
+      if (!currentReservationResponse.isOk()) {
+        logger.log(Level.SEVERE, currentReservationResponse.getError().getStatusText());
+        return false;
+      }
+      
+      String orderId = currentReservationResponse.getResponse().getOrderId();
+      
       MobilePayResponse<ReservationCancelResponse> reservationCancelResponse = mobilePayApi.reservationCancel(apiKey, merchantId, locationId, posId, orderId);
       if (reservationCancelResponse.isOk()) {
         return true; 
-      }
-      
-      MobilePayResponse<PaymentCancelResponse> directCancelResponse = mobilePayApi.paymentCancel(apiKey, merchantId, locationId, posId);
-      if (directCancelResponse.isOk()) {
-        return true;
       }
     } catch (MobilePayApiException e) {
       logger.log(Level.SEVERE, ERROR_OCCURRED_WHILE_INITIATING_MOBILE_PAY_PAYMENT, e);

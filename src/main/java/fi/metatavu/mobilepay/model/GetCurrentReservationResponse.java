@@ -2,7 +2,7 @@ package fi.metatavu.mobilepay.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class GetCurrentPaymentResponse {
+public class GetCurrentReservationResponse {
 
   private String posId;
   
