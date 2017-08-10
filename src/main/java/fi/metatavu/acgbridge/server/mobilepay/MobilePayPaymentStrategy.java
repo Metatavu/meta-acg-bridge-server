@@ -301,7 +301,6 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
   }
   
   private boolean cancelExistingPayment(MobilePayTransaction mobilePayTransaction) {
-    String orderId = mobilePayTransaction.getOrderId();
     String merchantId = mobilePayTransaction.getMerchantId();
     String apiKey = getApiKey(merchantId);
     String locationId = mobilePayTransaction.getLocationId();
@@ -311,11 +310,6 @@ public class MobilePayPaymentStrategy implements PaymentStrategy {
       MobilePayResponse<PaymentCancelResponse> directCancelResponse = mobilePayApi.paymentCancel(apiKey, merchantId, locationId, posId);
       if (directCancelResponse.isOk()) {
         return true;
-      }
-      
-      MobilePayResponse<ReservationCancelResponse> reservationCancelResponse = mobilePayApi.reservationCancel(apiKey, merchantId, locationId, posId, orderId);
-      if (reservationCancelResponse.isOk()) {
-        return true; 
       }
     } catch (MobilePayApiException e) {
       logger.log(Level.SEVERE, ERROR_OCCURRED_WHILE_INITIATING_MOBILE_PAY_PAYMENT, e);
