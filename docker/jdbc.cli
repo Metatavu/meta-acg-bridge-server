@@ -1,0 +1,4 @@
+embed-server --server-config=standalone-full-ha.xml
+/subsystem=datasources/jdbc-driver=mysql:add(driver-name=mysql, driver-module-name=com.mysql.jdbc, xa-datasource-class=com.mysql.jdbc.jdbc2.optional.MysqlXADataSource)
+data-source add --name=soteapi --jndi-name=java:jboss/datasources/soteapi --enabled=true --jta=true --use-ccm=true --connection-url=jdbc:mysql://${env.ACG_BRIDGE_SERVER_DB_HOST}:${env.ACG_BRIDGE_SERVER_DB_PORT}/${env.ACG_BRIDGE_SERVER_DB_NAME}${env.ACG_BRIDGE_SERVER_DB_OPTS} --driver-name=mysql --user-name=${env.ACG_BRIDGE_SERVER_DB_USERNAME} --password=${env.ACG_BRIDGE_SERVER_DB_PASSWORD} --check-valid-connection-sql="SELECT 1" --validate-on-match=false --share-prepared-statements=false --max-pool-size=1000
+/subsystem=transactions:write-attribute(name=node-identifier,value=${env.ACG_BRIDGE_SERVER_TX_IDENTIFIER})

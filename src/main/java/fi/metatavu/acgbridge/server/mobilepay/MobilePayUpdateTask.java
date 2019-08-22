@@ -3,15 +3,18 @@ package fi.metatavu.acgbridge.server.mobilepay;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.annotation.Resource;
+import javax.ejb.AccessTimeout;
 import javax.ejb.EJBContext;
+import javax.ejb.Singleton;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.transaction.SystemException;
-import javax.transaction.UserTransaction;
+import javax.transaction.Transactional;
+import javax.transaction.Transactional.TxType;
 
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -37,6 +40,8 @@ import fi.metatavu.mobilepay.model.PaymentStatusResponse;
 import fi.metatavu.mobilepay.model.ReservationStatusResponse;
 
 @ApplicationScoped
+@Singleton
+@AccessTimeout (unit = TimeUnit.MINUTES, value = 5l)
 public class MobilePayUpdateTask implements Runnable {
 
   private static final String FAILED_NOTIFY_CALLER = "Failed notify caller";
@@ -58,29 +63,17 @@ public class MobilePayUpdateTask implements Runnable {
   
   @Resource
   private EJBContext ejbContext;
-
+  
   @Override
-  @SuppressWarnings ("squid:S2583")
   public void run() {
-    UserTransaction userTransaction = ejbContext.getUserTransaction();
-    try {
-      userTransaction.begin();
-      
-      checkPendingTransactions();
-      
-      userTransaction.commit();
-    } catch (Exception ex) {
-      logger.log(Level.SEVERE, "Timer throw an exception", ex);
-      try {
-        if (userTransaction != null) {
-          userTransaction.rollback();
-        }
-      } catch (SystemException e1) {
-        logger.log(Level.SEVERE, "Failed to rollback transaction", e1);
-      }
-    }
+    runTx();
   }
 
+  @Transactional (value = TxType.REQUIRES_NEW)
+  public void runTx() {
+    checkPendingTransactions();
+  }
+  
   private void checkPendingTransactions() {
     List<MobilePayTransaction> transactions = transactionController.listPendingMobilePayTransactions(clusterController.getLocalNodeName());
     for (MobilePayTransaction transaction : transactions) {

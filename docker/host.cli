@@ -1,0 +1,2 @@
+embed-server --server-config=standalone-full-ha.xml
+/subsystem=undertow/server=default-server/host=meta-acg-bridge:add(alias=["${env.META_ACG_BRIDGE_HOST}"],default-web-module="meta-acg-bridge.war")
