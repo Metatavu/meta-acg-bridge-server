@@ -3,14 +3,11 @@ package fi.metatavu.acgbridge.server.mobilepay;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.annotation.Resource;
-import javax.ejb.AccessTimeout;
 import javax.ejb.EJBContext;
-import javax.ejb.Singleton;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.transaction.Transactional;
@@ -40,8 +37,6 @@ import fi.metatavu.mobilepay.model.PaymentStatusResponse;
 import fi.metatavu.mobilepay.model.ReservationStatusResponse;
 
 @ApplicationScoped
-@Singleton
-@AccessTimeout (unit = TimeUnit.MINUTES, value = 5l)
 public class MobilePayUpdateTask implements Runnable {
 
   private static final String FAILED_NOTIFY_CALLER = "Failed notify caller";
