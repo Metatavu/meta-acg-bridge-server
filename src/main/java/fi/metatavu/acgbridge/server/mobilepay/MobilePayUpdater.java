@@ -8,6 +8,7 @@ import javax.ejb.Singleton;
 import javax.ejb.Startup;
 import javax.enterprise.concurrent.ManagedScheduledExecutorService;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
@@ -17,6 +18,7 @@ import javax.inject.Inject;
 public class MobilePayUpdater {
 
   @Inject
+  @Any
   private Instance<MobilePayUpdateTask> mobilePayUpdateTask;
   
   @Resource
