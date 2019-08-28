@@ -24,7 +24,7 @@ public class TransactionTimeoutUpdater {
   
   @PostConstruct
   public void postConstruct() {
-    startTimer(30, 30);
+    startTimer(60, 30);
   }
   
   private void startTimer(long warmup, long delay) {

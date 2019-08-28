@@ -110,7 +110,7 @@ public class MobilePayUpdateTask implements Runnable {
     if (response.isOk()) {
       PaymentStatusResponse paymentStatus = response.getResponse();
       
-      logger.log(Level.SEVERE, () -> String.format("MobilePay responded with %d for payment %d", paymentStatus.getPaymentStatus(), transaction.getId()));
+      logger.log(Level.INFO, () -> String.format("MobilePay responded with %d for payment %d", paymentStatus.getPaymentStatus(), transaction.getId()));
       
       switch (paymentStatus.getPaymentStatus()) {
         case 40: // Cancel
@@ -145,7 +145,7 @@ public class MobilePayUpdateTask implements Runnable {
       ReservationStatusResponse reservationStatusResponse = mobilePayResponse.getResponse();
       Integer reservationStatus = reservationStatusResponse.getReservationStatus();
       
-      logger.log(Level.SEVERE, () -> String.format("MobilePay responded with %d for reservation %d", reservationStatus, transaction.getId()));
+      logger.log(Level.INFO, () -> String.format("MobilePay responded with %d for reservation %d", reservationStatus, transaction.getId()));
       
       switch (reservationStatus) {
         case 40: // Cancel
